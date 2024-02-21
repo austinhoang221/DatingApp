@@ -14,7 +14,12 @@ export default function Register() {
       userName: userName,
       password: password,
     }).then((e) => {
-      dispatch(login(e));
+      const result = {
+        userName: e?.userName!,
+        token: e?.token!,
+        isLoggedIn: true,
+      };
+      dispatch(login(result));
     });
   };
   return (
@@ -28,7 +33,7 @@ export default function Register() {
                   Register
                 </h3>
                 <p className="mb-4 text-grey-700">
-                  Enter your email and password
+                  Enter your username and password
                 </p>
                 <a className="flex items-center justify-center w-full py-4 mb-6 text-sm font-medium transition duration-300 rounded-2xl text-grey-900 bg-grey-300 hover:bg-grey-400 focus:ring-4 focus:ring-grey-300">
                   <img
@@ -71,21 +76,11 @@ export default function Register() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="flex items-center w-full px-5 py-4 mb-5 mr-2 text-sm font-medium outline-none focus:bg-grey-400 placeholder:text-grey-700 bg-grey-200 text-dark-grey-900 rounded-2xl"
                 />
-                <div className="flex flex-row justify-between mb-8">
-                  <label className="relative inline-flex items-center mr-3 cursor-pointer select-none">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className="w-5 h-5 bg-white border-2 rounded-sm border-grey-500 peer peer-checked:border-0 peer-checked:bg-orange-500">
-                      <img
-                        className=""
-                        src="https://raw.githubusercontent.com/Loopple/loopple-public-assets/main/motion-tailwind/img/icons/check.png"
-                        alt="tick"
-                      />
-                    </div>
-                  </label>
-                </div>
+
                 <button
                   className="w-full px-6 py-5 mb-5 text-sm font-bold leading-none text-white transition duration-300 md:w-96 rounded-2xl  focus:ring-4  bg-orange-500"
                   onClick={onSubmit}
+                  type="button"
                 >
                   Register
                 </button>
