@@ -20,9 +20,20 @@ axiosInstance.interceptors.response.use(
     return response.data;
   },
   async function (error) {
-    if (error?.response?.status === 401) {
-      NextResponse.redirect(new URL("/login"));
+    switch (error?.response?.status) {
+      case 400:
+        if (error?.response?.error.errors) {
+          const stateError = [];
+          for (const key in error?.response?.error.errors) {
+            stateError.push(error?.response?.error.errors[key]);
+          }
+          throw stateError;
+        }
+      case 401:
+        NextResponse.redirect(new URL("/login"));
+        break;
     }
+
     return Promise.reject(error);
   }
 );

@@ -1,5 +1,4 @@
-import ReduxProvider from "./_redux/provider";
-
-export default function Home() {
+"use client";
+export default function Main() {
   return <main className="w-full h-screen place-items-center"></main>;
 }
