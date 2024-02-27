@@ -5,15 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Repository.Account
+namespace Repository.Models
 {
-
-    public class AuthenticationResponseModel
+    public class AuthenticationRequestModel
     {
         [Required]
         public string UserName { get; set; }
         [Required]
-
-        public string Token { get; set; }
+        [StringLength(20, MinimumLength = 4)]
+        public string Password { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Entities;
+using Repository.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,9 @@ namespace Repository.User
 {
     public interface IUsersRepository
     {
-       Task<IEnumerable<AppUser>> GetUsers();
+        void Update(AppUser user);
+        Task<IEnumerable<MemberModel>> GetUsers();
+        Task<MemberModel> GetUserById(Guid id);
+        Task<MemberModel> GetUserByUsername(string name);
     }
 }

@@ -30,6 +30,56 @@ namespace Repository
             }
         }
 
+        public async Task<T> GetById(Guid id)
+        {
+            SqlConnection connection = _connection;
+
+            T entity = Activator.CreateInstance<T>();
+            string tableName = GetTableName();
+
+            string query = $"SELECT * FROM [{tableName}] WHERE Id = @Id";
+            try
+            {
+                await EstablishConnection(connection);
+
+                using (SqlCommand command = new SqlCommand(query, connection, _transaction))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            foreach (var prop in typeof(T).GetProperties())
+                            {
+                                if (!reader.IsDBNull(reader.GetOrdinal(prop.Name)))
+                                {
+                                    prop.SetValue(entity, reader[prop.Name]);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            throw new NonExistException($"{typeof(T).Name} with {id} id");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
+            }
+            finally
+            {
+                if (_transaction == null)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+            return entity;
+        }
+
         public async Task<IEnumerable<T>> GetAll()
         {
             List<T> entities = new List<T>();
@@ -47,8 +97,10 @@ namespace Repository
                             while (reader.Read())
                             {
                                 T entity = Activator.CreateInstance<T>();
-                                foreach (var prop in typeof(T).GetProperties())
+                                var properties = typeof(T).GetProperties();
+                                foreach (var prop in properties)
                                 {
+                               
                                     if (!reader.IsDBNull(reader.GetOrdinal(prop.Name)))
                                     {
                                         prop.SetValue(entity, reader[prop.Name]);

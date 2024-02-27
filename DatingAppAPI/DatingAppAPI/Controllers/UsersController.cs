@@ -1,6 +1,7 @@
 ﻿using Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Repository.Models;
 using Repository.User;
 
 namespace DatingAppAPI.Controllers
@@ -16,9 +17,23 @@ namespace DatingAppAPI.Controllers
 
         [Authorize]
         [HttpGet()]
-        public async Task<IEnumerable<AppUser>> GetAll()
+        public async Task<IEnumerable<MemberModel>> GetAll()
         {
             return await _usersRepository.GetUsers();
+        }
+
+        [Authorize]
+        [HttpGet("{id}")]
+        public async Task<MemberModel> GetById(Guid id)
+        {
+            return await _usersRepository.GetUserById(id);
+        }
+
+        [Authorize]
+        [HttpGet("{username}")]
+        public async Task<MemberModel> GetByUsername(string username)
+        {
+            return await _usersRepository.GetUserByUsername(username);
         }
     }
 }

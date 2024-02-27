@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Repository.Account;
 using Microsoft.AspNetCore.Authorization;
+using Repository.Models;
 
 namespace DatingAppAPI.Controllers
 {

@@ -2,6 +2,7 @@
 using Helper.Token;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Primitives;
+using Repository.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,6 +37,9 @@ namespace Repository.Account
                     UserName = model.UserName,
                     PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(model.Password)),
                     PasswordSalt = hmac.Key,
+                    Created = DateTime.UtcNow,
+                    LastActive = DateTime.UtcNow,
+
                 };
             var responseUser = new AuthenticationResponseModel()
             {

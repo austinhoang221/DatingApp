@@ -1,4 +1,5 @@
-﻿using Helper.Token;
+﻿using Helper.Extensions;
+using Helper.Token;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Repository.Account;
@@ -17,6 +18,7 @@ namespace DatingAppAPI.Extensions
         {
             services.AddTransient<SqlConnection>(x => new
 SqlConnection(config.GetConnectionString("AdoNetData")));
+            services.AddAutoMapper(typeof(AutoMapperProfiles).Assembly);
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<IUsersRepository, UsersRepository>();
             services.AddScoped<ITokenService, TokenService>();
