@@ -11,15 +11,17 @@ export const customTheme = createTheme({
       default: "#fff",
     },
     primary: {
-      main: "#FF4F00", // Set primary color to orange
+      main: "#f97316", // Set primary color to orange
     },
     secondary: {
       main: "#ff661f",
     },
     text: {
-      primary: "#1a1c23",
+      primary: "#F97316",
+      secondary: "#1a1c23",
     },
   },
+
   breakpoints: {
     values: {
       xs: 0,

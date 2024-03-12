@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="en">
       <body suppressHydrationWarning={true}>
         <ReduxProvider>
-          <main>{children}</main>
+          <main className="bg-white">{children}</main>
         </ReduxProvider>
       </body>
     </html>

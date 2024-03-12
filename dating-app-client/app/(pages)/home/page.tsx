@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import Nav from "./nav";
+import Swipe from "./swipe";
 
 export default function Home() {
-  return <Nav />;
+  return <Swipe />;
 }

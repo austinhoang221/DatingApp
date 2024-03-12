@@ -1,9 +1,53 @@
-import axios from "axios";
+"use client";
+import axios, { AxiosResponse } from "axios";
+import { useEffect } from "react";
+
 import { NextResponse } from "next/server";
+import { useToast } from "../_context/ToastContext";
 import Endpoint from "../_endpoint/endpoint";
 export const axiosInstance = axios.create({
   baseURL: Endpoint.baseUrl, // Replace with your API's base URL
 });
+
+const AxiosInterceptor = ({ children }: any) => {
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    const resInterceptor = (response: AxiosResponse) => {
+      return response;
+    };
+
+    const errInterceptor = (error: any) => {
+      switch (error.response?.status) {
+        case 400:
+          const stateError: any[] = [];
+          if (error?.response.data?.errors) {
+            for (const key in error?.response?.data?.errors) {
+              stateError.push(error?.response?.data?.errors[key]);
+            }
+            break;
+          } else {
+            throw stateError.flat();
+          }
+        case 401:
+          showToast("error", "Unauthorized");
+          NextResponse.redirect(new URL("/login"));
+          break;
+        case 500:
+          showToast("error", "Unexpected server error");
+      }
+      return Promise.reject(error);
+    };
+
+    const interceptor = axiosInstance.interceptors.response.use(
+      resInterceptor,
+      errInterceptor
+    );
+
+    return () => axiosInstance.interceptors.response.eject(interceptor);
+  }, []);
+  return children;
+};
 
 axiosInstance.interceptors.request.use(
   (config) => {
@@ -15,25 +59,8 @@ axiosInstance.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-axiosInstance.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
-  async function (error) {
-    switch (error?.response?.status) {
-      case 400:
-        if (error?.response?.error.errors) {
-          const stateError = [];
-          for (const key in error?.response?.error.errors) {
-            stateError.push(error?.response?.error.errors[key]);
-          }
-          throw stateError;
-        }
-      case 401:
-        NextResponse.redirect(new URL("/login"));
-        break;
-    }
+axiosInstance.interceptors.response.use((response) => {
+  return response.data;
+});
 
-    return Promise.reject(error);
-  }
-);
+export { AxiosInterceptor };
