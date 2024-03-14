@@ -23,6 +23,13 @@ namespace DatingAppAPI.Controllers
         }
 
         [Authorize]
+        [HttpGet("paginate")]
+        public async Task<IEnumerable<MemberModel>> GetPaginate([FromQuery] PaginationRequestModel model)
+        {
+            return await _usersRepository.GetUsersPaginate(model);
+        }
+
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<MemberModel> GetById(Guid id)
         {

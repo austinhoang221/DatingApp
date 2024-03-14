@@ -6,6 +6,7 @@ using Repository.Models;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -105,7 +106,6 @@ namespace Repository.User
                                         LookingFor = reader.IsDBNull(reader.GetOrdinal("LookingFor")) ? string.Empty : reader.GetString(reader.GetOrdinal("LookingFor")),
                                         Interests = reader.IsDBNull(reader.GetOrdinal("Interests")) ? string.Empty : reader.GetString(reader.GetOrdinal("Interests")),
                                         City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
-                                        Photos = new List<Photo>()
                                     };
                                     bool isMain = reader.GetBoolean(reader.GetOrdinal("IsMain"));
                                     if (isMain)
@@ -117,13 +117,7 @@ namespace Repository.User
                                 }
                                 Guid photoId = reader.GetGuid(reader.GetOrdinal("PhotoId"));
                              
-                                    user.Photos.Add(new Photo()
-                                    {
-                                        Id = reader.GetGuid(reader.GetOrdinal("PhotoId")),
-                                        Url = reader.GetString(reader.GetOrdinal("Url")),
-                                        IsMain = reader.GetBoolean(reader.GetOrdinal("IsMain")),
-                                        PublicId = reader.IsDBNull(reader.GetOrdinal("PublicId")) ? string.Empty : reader.GetString(reader.GetOrdinal("PublicId")),
-                                    });
+                                  
                             }
                         }
                     }
@@ -142,6 +136,53 @@ namespace Repository.User
             return users;
         }
 
+        public async Task<IEnumerable<MemberModel>> GetUsersPaginate(PaginationRequestModel model)
+        {
+            SqlConnection connection = this._connection;
+            await EstablishConnection(connection);
+            List<MemberModel> users = new List<MemberModel>();
+
+            try
+            {
+                using (SqlCommand command = new SqlCommand("GetUsers", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    SqlParameter parameterPageSize = command.Parameters.AddWithValue("@PageSize", model.PageSize);
+                    SqlParameter parameterPageNum = command.Parameters.AddWithValue("@PageNumber", model.PageNum);
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            MemberModel user = new MemberModel()
+                            {
+                                Id = Guid.Parse(reader["Id"].ToString()),
+                                UserName = reader.IsDBNull(reader.GetOrdinal("UserName")) ? string.Empty : reader.GetString(reader.GetOrdinal("UserName")),
+                                PhotoUrl = reader.IsDBNull(reader.GetOrdinal("Url")) ? string.Empty : reader.GetString(reader.GetOrdinal("Url")),
+                                Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
+                                Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
+                                LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
+                                KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
+                                Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
+                                Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
+                                LookingFor = reader.IsDBNull(reader.GetOrdinal("LookingFor")) ? string.Empty : reader.GetString(reader.GetOrdinal("LookingFor")),
+                                Interests = reader.IsDBNull(reader.GetOrdinal("Interests")) ? string.Empty : reader.GetString(reader.GetOrdinal("Interests")),
+                                City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
+                            };
+                            users.Add(user);
+                        }
+                    }
+                }
+                return users;
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
+            finally
+            {
+                if (_transaction == null) await connection.CloseAsync();
+            }
+        }
         public void Update(AppUser user)
         {
             throw new NotImplementedException();

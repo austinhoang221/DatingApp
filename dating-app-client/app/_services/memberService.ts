@@ -1,28 +1,16 @@
 import Endpoint from "../_endpoint/endpoint";
 import { axiosInstance } from "../_middleware/authenticate";
-import { IAuthenticateRequestModel } from "../_models/_auth/IAuthenticateRequestModel";
-import { IAuthenticateResponseModel } from "../_models/_auth/IAuthenticateResponseModel";
+import { IMemberResponseModel } from "../_models/_members/IMemberResponseModel";
+import { IPaginateRequestModel } from "../_models/_paginate/IPaginateRequestModel";
 
 export class MemberService {
-  public static readonly logIn = async (payload: IAuthenticateRequestModel) => {
-    try {
-      const response: IAuthenticateResponseModel = await axiosInstance.post(
-        Endpoint.login,
-        payload
-      );
-      return response;
-    } catch (error) {
-      console.error("Error making request:", error);
-    }
-  };
-
-  public static readonly register = async (
-    payload: IAuthenticateRequestModel
+  public static readonly getPaginate = async (
+    payload: IPaginateRequestModel
   ) => {
     try {
-      const response: IAuthenticateResponseModel = await axiosInstance.post(
-        Endpoint.register,
-        payload
+      const response: IMemberResponseModel = await axiosInstance.get(
+        Endpoint.usersPaginate +
+          `?PageSize=${payload.pageSize}&PageNum=${payload.pageNum}`
       );
       return response;
     } catch (error) {

@@ -12,6 +12,7 @@ namespace Repository.User
     {
         void Update(AppUser user);
         Task<IEnumerable<MemberModel>> GetUsers();
+        Task<IEnumerable<MemberModel>> GetUsersPaginate(PaginationRequestModel model);
         Task<MemberModel> GetUserById(Guid id);
         Task<MemberModel> GetUserByUsername(string name);
     }
