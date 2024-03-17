@@ -1,7 +1,7 @@
 "use client";
 import Toast from "@/app/_components/toast/page";
 import { useToast } from "@/app/_context/ToastContext";
-import { login } from "@/app/_redux/authSlice";
+import { IAuthState, login } from "@/app/_redux/authSlice";
 import { useAppDispatch } from "@/app/_redux/store";
 import { AuthenticationService } from "@/app/_services/authentication.service";
 import Link from "next/link";
@@ -24,13 +24,8 @@ export default function Login() {
       password: password,
     }).then((e) => {
       if (e) {
-        const result = {
-          userName: e?.userName!,
-          token: e?.token!,
-          isLoggedIn: true,
-        };
         router.push("/home");
-        dispatch(login(result));
+        dispatch(login(e as IAuthState));
       } else {
         showToast("error", "Incorrect username or password");
       }

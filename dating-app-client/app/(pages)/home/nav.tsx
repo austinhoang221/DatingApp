@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -9,21 +9,31 @@ import Typography from "@mui/material/Typography";
 import Menu from "@mui/material/Menu";
 import Container from "@mui/material/Container";
 import Avatar from "@mui/material/Avatar";
-import Button from "@mui/material/Button";
-import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
+import { IAuthenticateResponseModel } from "@/app/_models/_auth/IAuthenticateResponseModel";
+import { useRouter } from "next/navigation";
 
 const pages = ["Products", "Pricing", "Blog"];
-const settings = ["Profile", "Account", "Dashboard", "Logout"];
+const settings = ["Profile", "Logout"];
 
 export default function Nav() {
+  const router = useRouter();
+  const [user, setUser] = useState<IAuthenticateResponseModel | null>(null);
+
+  useEffect(() => {
+    setUser(
+      JSON.parse(
+        window.localStorage.getItem("user") ?? ""
+      ) as IAuthenticateResponseModel
+    );
+  }, []);
+
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(
     null
   );
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
     null
   );
-
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
   };
@@ -37,6 +47,15 @@ export default function Nav() {
 
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
+  };
+
+  const handleNavigateElUser = (page: string) => {
+    switch (page) {
+      case "Logout": {
+        localStorage.clear();
+        router.push("/login");
+      }
+    }
   };
 
   return (
@@ -114,11 +133,9 @@ export default function Nav() {
           </Typography>
 
           <Box sx={{ flexGrow: 1 }}>
-            <Tooltip title="Open settings">
-              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
-              </IconButton>
-            </Tooltip>
+            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+              <Avatar alt="Remy Sharp" src={user?.photoUrl} />
+            </IconButton>
             <Menu
               sx={{ mt: "45px" }}
               id="menu-appbar"
@@ -136,8 +153,18 @@ export default function Nav() {
               onClose={handleCloseUserMenu}
             >
               {settings.map((setting) => (
-                <MenuItem key={setting} onClick={handleCloseUserMenu}>
-                  <Typography textAlign="center">{setting}</Typography>
+                <MenuItem
+                  key={setting}
+                  onClick={() => handleNavigateElUser(setting)}
+                >
+                  <Typography
+                    sx={{
+                      color: "#1a1c23",
+                    }}
+                    textAlign="center"
+                  >
+                    {setting}
+                  </Typography>
                 </MenuItem>
               ))}
             </Menu>

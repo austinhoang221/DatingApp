@@ -1,4 +1,7 @@
-﻿using Entities;
+﻿using Azure;
+using Azure.Core;
+using Entities;
+using Helper.Extensions;
 using Helper.Token;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Primitives;
@@ -44,7 +47,7 @@ namespace Repository.Account
             var responseUser = new AuthenticationResponseModel()
             {
                 UserName = newUser.UserName,
-                Token = _tokenService.CreateToken(newUser)
+                Token = _tokenService.CreateToken(newUser.UserName)
             };
             await this.Insert(newUser);
             return responseUser;
@@ -69,32 +72,58 @@ namespace Repository.Account
 
             var newUser = new AuthenticationResponseModel()
             {
+                Id = user.Id,
                 UserName = user.UserName,
-                Token = _tokenService.CreateToken(user)
+                Token = _tokenService.CreateToken(user.UserName),
+                PhotoUrl = user.PhotoUrl,
+                Age = user.Age,
+                City = user.City,
+                Created = user.Created,
+                LastActive = user.LastActive,
+                KnownAs = user.KnownAs,
+                Gender = user.Gender,
+                Introduction = user.Introduction,
+                Interests = user.Interests,
             };
             return newUser;
         }
 
-        private async Task<AppUser?> GetByUserName(string userName)
+        private async Task<AppUserModel?> GetByUserName(string userName)
         {
             SqlConnection sqlConnection = _connection;
-            string query = $"SELECT * FROM AppUser WHERE UserName = '{userName}'";
+            string query = $"SELECT AU.Id, P.Id AS PhotoId, UserName, DateOfBirth, KnownAs, Created, " +
+                    $"LastActive, Gender, Introduction, LookingFor, PasswordSalt, PasswordHash, " +
+                    $"Interests, City, Country, Url, IsMain, PublicId " +
+                    $"FROM AppUser AU JOIN Photo P ON AU.Id = P.AppUserId " +
+                    $"Where UserName = @UserName AND IsMain = 1";
             try
             {
                 await EstablishConnection(sqlConnection);
 
                 using (SqlCommand command = new SqlCommand(query, sqlConnection, _transaction))
                 {
+                    command.Parameters.AddWithValue("@UserName", userName);
+
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
                         if (reader.Read())
                         {
-                            var user = new AppUser()
+                            var user = new AppUserModel()
                             {
                                 Id = new Guid(reader["Id"].ToString()),
                                 UserName = reader["UserName"].ToString(),
                                 PasswordSalt = (byte[])(reader["PasswordSalt"]),
-                                PasswordHash = (byte[])(reader["PasswordHash"]),
+                                PasswordHash = (byte[])(reader["PasswordHash"]), 
+                                PhotoUrl = reader.IsDBNull(reader.GetOrdinal("Url")) ? string.Empty : reader.GetString(reader.GetOrdinal("Url")),
+                                Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
+                                Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
+                                LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
+                                KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
+                                Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
+                                Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
+                                LookingFor = reader.IsDBNull(reader.GetOrdinal("LookingFor")) ? string.Empty : reader.GetString(reader.GetOrdinal("LookingFor")),
+                                Interests = reader.IsDBNull(reader.GetOrdinal("Interests")) ? string.Empty : reader.GetString(reader.GetOrdinal("Interests")),
+                                City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
                             };
                             return user;
                         }

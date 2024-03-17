@@ -1,16 +1,27 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
+import { IMemberResponseModel } from "../_models/_members/IMemberResponseModel";
 
-export interface IAuthState {
+export interface IAuthState extends IMemberResponseModel {
   isLoggedIn: boolean;
-  userName: string;
   token: string;
 }
 
 const initialState: IAuthState = {
   isLoggedIn: false,
+  id: "",
   userName: "",
   token: "",
+  photoUrl: "",
+  created: "",
+  lastActive: "",
+  knownAs: "",
+  gender: "",
+  introduction: "",
+  lookingFor: "",
+  interests: "",
+  city: "",
+  age: 0,
 };
 
 export const authSlice = createSlice({
