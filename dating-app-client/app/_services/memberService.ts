@@ -8,7 +8,7 @@ export class MemberService {
     payload: IPaginateRequestModel
   ) => {
     try {
-      const response: IMemberResponseModel = await axiosInstance.get(
+      const response: IMemberResponseModel[] = await axiosInstance.get(
         Endpoint.usersPaginate +
           `?PageSize=${payload.pageSize}&PageNum=${payload.pageNum}`
       );

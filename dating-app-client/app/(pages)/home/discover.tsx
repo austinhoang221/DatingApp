@@ -6,10 +6,10 @@ export default function Discover() {
   return (
     <>
       <div
-        className="text-center bg-gray-200 flex items-center px-12 py-4 justify-between
+        className="text-center bg-gray-100 flex items-center px-12 py-4 justify-between
         "
       >
-        <div className="bg-white border border-[#F97316] w-24 h-24 shrink-0 grow-0 rounded-full flex items-center justify-center align-middle">
+        <div className="bg-white border-2 border-[#F97316] w-24 h-24 shrink-0 grow-0 rounded-full flex items-center justify-center align-middle">
           <StyleIcon className="text-7xl" sx={{ color: "#F97316" }} />
         </div>
         <div>

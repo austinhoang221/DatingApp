@@ -16,7 +16,7 @@ export default function ContentLayout({
           <Grid item xs={4}>
             <Messages />
           </Grid>
-          <Grid item xs={8} className="h-100">
+          <Grid item xs={8} className="h-100 bg-gray-100">
             {children}
           </Grid>
         </Grid>
