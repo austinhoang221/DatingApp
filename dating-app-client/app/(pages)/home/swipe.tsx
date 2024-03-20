@@ -1,6 +1,6 @@
 import { IMemberResponseModel } from "@/app/_models/_members/IMemberResponseModel";
 import { MemberService } from "@/app/_services/memberService";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import AdsClickIcon from "@mui/icons-material/AdsClick";
@@ -11,41 +11,93 @@ import ArrowCircleUpOutlinedIcon from "@mui/icons-material/ArrowCircleUpOutlined
 import ArrowCircleDownOutlinedIcon from "@mui/icons-material/ArrowCircleDownOutlined";
 import ExpandCircleDownIcon from "@mui/icons-material/ExpandCircleDown";
 import { Grid } from "@mui/material";
+import { ArrowKey } from "@/app/_constants/constants";
 import "./swipe.scss";
 export default function Swipe() {
   const pageSize = 10;
   const pageSizeLimit = 7;
   const [users, setUsers] = useState<IMemberResponseModel[]>([]);
-  const [pageNum, setPageNum] = useState<number>(1);
+  const pageNum = useRef<number>(1);
+  const userCount = useRef<number>(0);
+  const currentIndex = useRef<number>(0);
+  const swipeElement = useRef<HTMLDivElement>(null);
   const [swipeIndex, setSwipeIndex] = useState<number>(0);
 
   useEffect(() => {
-    if (swipeIndex === pageSizeLimit) {
-      fetchData();
-      setSwipeIndex(0);
-    }
-  }, [swipeIndex]);
+    fetchData();
+  }, []);
 
   const fetchData = async () => {
     const payload = {
-      pageNum: pageNum,
+      pageNum: pageNum.current,
       pageSize: pageSize,
     };
     await MemberService.getPaginate(payload).then((res) => {
       if (res) {
         setUsers((prevUsers) => [...prevUsers, ...res]);
+        userCount.current += res.length;
       }
     });
   };
 
+  useEffect(() => {
+    if (swipeIndex === pageSizeLimit) {
+      pageNum.current++;
+      fetchData();
+    }
+  }, [swipeIndex]);
+
+  useEffect(() => {
+    const keyPressListener = (e: any) => {
+      switch (e.keyCode) {
+        case ArrowKey.Right:
+          handleSwipe();
+          break;
+        case ArrowKey.Left:
+          handleSwipe();
+          break;
+        case ArrowKey.Up:
+          onCloseProfile();
+          break;
+        case ArrowKey.Down:
+          onOpenProfile();
+          break;
+      }
+    };
+    window.addEventListener("keydown", keyPressListener);
+
+    return () => window.removeEventListener("keydown", keyPressListener);
+  }, []);
+
   const handleSwipe = () => {
-    setSwipeIndex((prevIndex) => prevIndex + 1);
+    if (userCount.current > currentIndex.current + 1) {
+      setSwipeIndex((prevIndex) => prevIndex + 1);
+      currentIndex.current++;
+    }
+  };
+
+  const onOpenProfile = () => {
+    swipeElement.current?.scrollTo({
+      top: swipeElement.current.scrollHeight,
+      behavior: "smooth",
+    });
+  };
+
+  const onCloseProfile = () => {
+    swipeElement.current?.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   return (
     <>
       <div className="relative">
-        <div className="card w-80 overflow-auto h-[32rem] scrollbar-hide bg-white mx-auto align-middle border rounded-2xl mt-10 mb-4 cursor-pointer">
+        <div
+          ref={swipeElement}
+          onClick={onOpenProfile}
+          className="card w-80 overflow-auto h-[32rem] scrollbar-hide bg-white mx-auto align-middle border rounded-2xl mt-10 mb-4 cursor-pointer"
+        >
           <>
             <div className="relative">
               <img src="" alt="" className="w-100 h-64" />
@@ -53,7 +105,11 @@ export default function Swipe() {
             </div>
             <div className="px-3">
               <div className="h-full max-h-24">
-                <h3 className="font-extrabold text-3xl">Alex, 24</h3>
+                <h3 className="font-extrabold text-3xl">
+                  {users?.[currentIndex.current]?.userName +
+                    ", " +
+                    users?.[currentIndex.current]?.age}
+                </h3>
                 <p className="text-sm opacity-80">
                   Founder at Creative Networking
                 </p>
