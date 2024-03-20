@@ -33,23 +33,51 @@ namespace Repository.Account
             var user = await GetByUserName(model.UserName);
 
             if (user != null) throw new Exception("User existed");
-                using var hmac = new HMACSHA512();
-                var newUser = new AppUser()
-                {
-                    Id = Guid.NewGuid(),
-                    UserName = model.UserName,
-                    PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(model.Password)),
-                    PasswordSalt = hmac.Key,
-                    Created = DateTime.UtcNow,
-                    LastActive = DateTime.UtcNow,
-
-                };
+            using var hmac = new HMACSHA512();
+            var newUser = new AppUser()
+            {
+                Id = Guid.NewGuid(),
+                UserName = model.UserName,
+                PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(model.Password)),
+                PasswordSalt = hmac.Key,
+                Created = DateTime.UtcNow,
+                LastActive = DateTime.UtcNow,
+            };
             var responseUser = new AuthenticationResponseModel()
             {
                 UserName = newUser.UserName,
+                Created = newUser.Created,
+                LastActive = newUser.LastActive,
                 Token = _tokenService.CreateToken(newUser.UserName)
             };
-            await this.Insert(newUser);
+            string query = "INSERT INTO " +
+                "[AppUser] ([Id],[UserName],[PasswordHash], [PasswordSalt], [Created],[LastActive]) " +
+                "VALUES (@Id, @UserName, @PasswordHash, @PasswordSalt, @Created,@LastActive)";
+            try
+            {
+                using (SqlCommand command = new SqlCommand(query, connection, _transaction))
+                {
+                    command.Parameters.AddWithValue($"@Id", Guid.NewGuid());
+                    command.Parameters.AddWithValue($"@UserName", newUser.UserName);
+                    command.Parameters.AddWithValue($"@PasswordHash", newUser.PasswordHash);
+                    command.Parameters.AddWithValue($"@PasswordSalt", newUser.PasswordSalt);
+                    command.Parameters.AddWithValue($"@Created", newUser.Created);
+                    command.Parameters.AddWithValue($"@LastActive", newUser.LastActive);
+                    await command.ExecuteNonQueryAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
+            }
+            finally
+            {
+                if (_transaction == null)
+                {
+                    await connection.CloseAsync();
+                }
+            }
             return responseUser;
         }
 
@@ -113,7 +141,7 @@ namespace Repository.Account
                                 Id = new Guid(reader["Id"].ToString()),
                                 UserName = reader["UserName"].ToString(),
                                 PasswordSalt = (byte[])(reader["PasswordSalt"]),
-                                PasswordHash = (byte[])(reader["PasswordHash"]), 
+                                PasswordHash = (byte[])(reader["PasswordHash"]),
                                 PhotoUrl = reader.IsDBNull(reader.GetOrdinal("Url")) ? string.Empty : reader.GetString(reader.GetOrdinal("Url")),
                                 Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
                                 Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
@@ -140,13 +168,7 @@ namespace Repository.Account
                 Console.WriteLine(ex.Message);
                 throw new Exception(ex.Message);
             }
-            finally
-            {
-                if (_transaction == null)
-                {
-                    await sqlConnection.CloseAsync();
-                }
-            }
+
         }
     }
 }

@@ -22,9 +22,11 @@ export default function Nav() {
 
   useEffect(() => {
     setUser(
-      JSON.parse(
-        window.localStorage.getItem("user") ?? ""
-      ) as IAuthenticateResponseModel
+      window.localStorage.getItem("user")
+        ? (JSON.parse(
+            window.localStorage.getItem("user") ?? ""
+          ) as IAuthenticateResponseModel)
+        : null
     );
   }, []);
 

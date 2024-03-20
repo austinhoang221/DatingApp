@@ -5,13 +5,14 @@ import { useEffect } from "react";
 import { NextResponse } from "next/server";
 import { useToast } from "../_context/ToastContext";
 import Endpoint from "../_endpoint/endpoint";
+import { useRouter } from "next/navigation";
 export const axiosInstance = axios.create({
   baseURL: Endpoint.baseUrl, // Replace with your API's base URL
 });
 
 const AxiosInterceptor = ({ children }: any) => {
   const { showToast } = useToast();
-
+  const router = useRouter();
   useEffect(() => {
     const resInterceptor = (response: AxiosResponse) => {
       return response;
@@ -31,7 +32,7 @@ const AxiosInterceptor = ({ children }: any) => {
           }
         case 401:
           showToast("error", "Unauthorized");
-          NextResponse.redirect(new URL("/login"));
+          router.push("/login");
           break;
         case 500:
           showToast("error", "Unexpected server error");
