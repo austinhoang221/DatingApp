@@ -18,8 +18,6 @@ const initialState: IAuthState = {
   knownAs: "",
   gender: "",
   introduction: "",
-  lookingFor: "",
-  interests: "",
   city: "",
   age: 0,
 };

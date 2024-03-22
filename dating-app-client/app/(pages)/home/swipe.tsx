@@ -100,7 +100,11 @@ export default function Swipe() {
         >
           <>
             <div className="relative">
-              <img src="" alt="" className="w-100 h-64" />
+              <img
+                src={users?.[currentIndex.current]?.photoUrl}
+                alt=""
+                className="w-100 h-64"
+              />
               <ExpandCircleDownIcon className="absolute text-3xl top-4 left-4 opacity-50" />
             </div>
             <div className="px-3">
@@ -111,22 +115,11 @@ export default function Swipe() {
                     users?.[currentIndex.current]?.age}
                 </h3>
                 <p className="text-sm opacity-80">
-                  Founder at Creative Networking
+                  {users?.[currentIndex.current]?.knownAs}
                 </p>
                 <div className="border border-[#CCC] opacity-50 my-2"></div>
                 <p className="text-xs opacity-80">
-                  Founder at Creative Networking Founder at Creative Networking
-                  Founder at Creative Networking Founder at Creative Networking
-                  Founder at Creative NetworkingFounder at Creative
-                  NetworkingFounder at Creative Networking Founder at Creative
-                  Founder at Creative Networking Founder at Creative Networking
-                  Founder at Creative Networking Founder at Creative Networking
-                  Founder at Creative NetworkingFounder at Creative
-                  NetworkingFounder at Creative Networking Founder at Creative
-                  Founder at Creative Networking Founder at Creative Networking
-                  Founder at Creative Networking Founder at Creative Networking
-                  Founder at Creative NetworkingFounder at Creative
-                  NetworkingFounder at Creative Networking Founder at Creative
+                  {users?.[currentIndex.current]?.introduction}
                 </p>
               </div>
             </div>

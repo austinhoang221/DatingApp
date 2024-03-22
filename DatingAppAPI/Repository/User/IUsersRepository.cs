@@ -13,6 +13,7 @@ namespace Repository.User
         void Update(AppUser user);
         Task<IEnumerable<MemberModel>> GetUsers();
         Task<IEnumerable<MemberModel>> GetUsersPaginate(PaginationRequestModel model);
+        Task GenerateSeedData(List<AppUser> users);
         Task<MemberModel> GetUserById(Guid id);
         Task<MemberModel> GetUserByUsername(string name);
     }

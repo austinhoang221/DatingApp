@@ -8,6 +8,7 @@ using Microsoft.Extensions.Primitives;
 using Repository.Models;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,12 +18,12 @@ namespace Repository.Account
 {
     public class AccountRepository : BaseRepository<AppUser>, IAccountRepository
     {
-        private readonly SqlConnection _connection;
         private readonly ITokenService _tokenService;
+        private new readonly SqlConnection _connection;
 
         public AccountRepository(SqlConnection connection, ITokenService tokenService)
         {
-            this._connection = connection;
+            _connection = connection;
             _tokenService = tokenService;
         }
 
@@ -81,94 +82,95 @@ namespace Repository.Account
             return responseUser;
         }
 
-        public async Task<AuthenticationResponseModel?> Login(AuthenticationRequestModel model)
-        {
-            SqlConnection connection = _connection;
-            await this.EstablishConnection(connection);
-
-            var user = await GetByUserName(model.UserName);
-            if (user == null) return null;
-
-            using var hmac = new HMACSHA512(user.PasswordSalt);
-
-            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(model.Password));
-
-            for (int i = 0; i < computedHash.Length; i++)
+      
+            public async Task<AuthenticationResponseModel?> Login(AuthenticationRequestModel model)
             {
-                if (computedHash[i] != user.PasswordHash[i]) throw new Exception("Password incorrect");
+                SqlConnection connection = _connection;
+                await this.EstablishConnection(connection);
+
+                var user = await GetByUserName(model.UserName);
+                if (user == null) return null;
+
+                using var hmac = new HMACSHA512(user.PasswordSalt);
+
+                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(model.Password));
+
+                for (int i = 0; i < computedHash.Length; i++)
+                {
+                    if (computedHash[i] != user.PasswordHash[i]) throw new Exception("Password incorrect");
+                }
+
+                var newUser = new AuthenticationResponseModel()
+                {
+                    Id = user.Id,
+                    UserName = user.UserName,
+                    Token = _tokenService.CreateToken(user.UserName),
+                    PhotoUrl = user.PhotoUrl,
+                    Age = user.Age,
+                    City = user.City,
+                    Created = user.Created,
+                    LastActive = user.LastActive,
+                    KnownAs = user.KnownAs,
+                    Gender = user.Gender,
+                    Introduction = user.Introduction,
+                };
+                return newUser;
             }
 
-            var newUser = new AuthenticationResponseModel()
+            private async Task<AppUserModel?> GetByUserName(string userName)
             {
-                Id = user.Id,
-                UserName = user.UserName,
-                Token = _tokenService.CreateToken(user.UserName),
-                PhotoUrl = user.PhotoUrl,
-                Age = user.Age,
-                City = user.City,
-                Created = user.Created,
-                LastActive = user.LastActive,
-                KnownAs = user.KnownAs,
-                Gender = user.Gender,
-                Introduction = user.Introduction,
-                Interests = user.Interests,
-            };
-            return newUser;
-        }
-
-        private async Task<AppUserModel?> GetByUserName(string userName)
-        {
-            SqlConnection sqlConnection = _connection;
-            string query = $"SELECT AU.Id, P.Id AS PhotoId, UserName, DateOfBirth, KnownAs, Created, " +
-                    $"LastActive, Gender, Introduction, LookingFor, PasswordSalt, PasswordHash, " +
-                    $"Interests, City, Country, Url, IsMain, PublicId " +
-                    $"FROM AppUser AU JOIN Photo P ON AU.Id = P.AppUserId " +
-                    $"Where UserName = @UserName AND IsMain = 1";
-            try
-            {
-                await EstablishConnection(sqlConnection);
-
-                using (SqlCommand command = new SqlCommand(query, sqlConnection, _transaction))
+                SqlConnection sqlConnection = _connection;
+                string query = $"SELECT AU.Id, P.Id AS PhotoId, UserName, DateOfBirth, KnownAs, Created, " +
+                        $"LastActive, Gender, Introduction, PasswordSalt, PasswordHash, " +
+                        $"City, Country, Url, IsMain, PublicId " +
+                        $"FROM AppUser AU JOIN Photo P ON AU.Id = P.AppUserId " +
+                        $"Where UserName = @UserName AND IsMain = 1";
+                try
                 {
-                    command.Parameters.AddWithValue("@UserName", userName);
+                    await EstablishConnection(sqlConnection);
 
-                    using (SqlDataReader reader = command.ExecuteReader())
+                    using (SqlCommand command = new SqlCommand(query, sqlConnection, _transaction))
                     {
-                        if (reader.Read())
-                        {
-                            var user = new AppUserModel()
-                            {
-                                Id = new Guid(reader["Id"].ToString()),
-                                UserName = reader["UserName"].ToString(),
-                                PasswordSalt = (byte[])(reader["PasswordSalt"]),
-                                PasswordHash = (byte[])(reader["PasswordHash"]),
-                                PhotoUrl = reader.IsDBNull(reader.GetOrdinal("Url")) ? string.Empty : reader.GetString(reader.GetOrdinal("Url")),
-                                Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
-                                Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
-                                LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
-                                KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
-                                Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
-                                Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
-                                LookingFor = reader.IsDBNull(reader.GetOrdinal("LookingFor")) ? string.Empty : reader.GetString(reader.GetOrdinal("LookingFor")),
-                                Interests = reader.IsDBNull(reader.GetOrdinal("Interests")) ? string.Empty : reader.GetString(reader.GetOrdinal("Interests")),
-                                City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
-                            };
-                            return user;
-                        }
-                        else
-                        {
-                            return null;
-                        }
+                        command.Parameters.AddWithValue("@UserName", userName);
 
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                var user = new AppUserModel()
+                                {
+                                    Id = new Guid(reader["Id"].ToString()),
+                                    UserName = reader["UserName"].ToString(),
+                                    PasswordSalt = (byte[])(reader["PasswordSalt"]),
+                                    PasswordHash = (byte[])(reader["PasswordHash"]),
+                                    PhotoUrl = reader.IsDBNull(reader.GetOrdinal("Url")) ? string.Empty : reader.GetString(reader.GetOrdinal("Url")),
+                                    Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
+                                    Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
+                                    LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
+                                    KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
+                                    Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
+                                    Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
+                                    Country = reader.IsDBNull(reader.GetOrdinal("Country")) ? string.Empty : reader.GetString(reader.GetOrdinal("Country")),
+                                    City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
+                                };
+                                return user;
+                            }
+                            else
+                            {
+                                return null;
+                            }
+
+                        }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                throw new Exception(ex.Message);
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    throw new Exception(ex.Message);
+                }
+
             }
 
+            
         }
     }
-}

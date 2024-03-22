@@ -8,9 +8,9 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using DatingAppAPI.Extensions;
 using Helper.Middleware;
+using Repository.Models;
 
 var builder = WebApplication.CreateBuilder(args);
-
 // Add services to the container.
 builder.Services.AddCors(options =>
 {
@@ -24,7 +24,6 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
-
 
 builder.Services.AddApplicationService(builder.Configuration);
 builder.Services.AddIdentityService(builder.Configuration);
@@ -56,6 +55,13 @@ builder.Services.AddSwaggerGen(c => {
 
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var userRepository = scope.ServiceProvider.GetRequiredService<IUsersRepository>();
+    await Seed.SeedUsers(userRepository);
+
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

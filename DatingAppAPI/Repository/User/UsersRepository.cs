@@ -7,7 +7,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,9 +17,8 @@ namespace Repository.User
 {
     public class UsersRepository : BaseRepository<AppUser>, IUsersRepository
     {
-        private readonly SqlConnection _connection;
         private readonly IMapper _mapper;
-
+        private new readonly SqlConnection _connection;
         public UsersRepository(SqlConnection connection, IMapper mapper)
         {
             _connection = connection;
@@ -77,8 +78,8 @@ namespace Repository.User
             {
                 await EstablishConnection(connection);
                 string query = $"SELECT AU.Id, P.Id AS PhotoId, UserName, DateOfBirth, KnownAs, Created, " +
-                    $"LastActive, Gender, Introduction, LookingFor, " +
-                    $"Interests, City, Country, Url, IsMain, PublicId " +
+                    $"LastActive, Gender, Introduction, " +
+                    $"City, Country, Url, IsMain, PublicId " +
                     $"FROM AppUser AU JOIN Photo P ON AU.Id = P.AppUserId";
 
                 using (SqlCommand command = new SqlCommand(query, connection, _transaction))
@@ -103,9 +104,8 @@ namespace Repository.User
                                         KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
                                         Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
                                         Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
-                                        LookingFor = reader.IsDBNull(reader.GetOrdinal("LookingFor")) ? string.Empty : reader.GetString(reader.GetOrdinal("LookingFor")),
-                                        Interests = reader.IsDBNull(reader.GetOrdinal("Interests")) ? string.Empty : reader.GetString(reader.GetOrdinal("Interests")),
                                         City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
+                                        Country = reader.IsDBNull(reader.GetOrdinal("Country")) ? string.Empty : reader.GetString(reader.GetOrdinal("Country")),
                                     };
                                     bool isMain = reader.GetBoolean(reader.GetOrdinal("IsMain"));
                                     if (isMain)
@@ -164,9 +164,8 @@ namespace Repository.User
                                 KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
                                 Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
                                 Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
-                                LookingFor = reader.IsDBNull(reader.GetOrdinal("LookingFor")) ? string.Empty : reader.GetString(reader.GetOrdinal("LookingFor")),
-                                Interests = reader.IsDBNull(reader.GetOrdinal("Interests")) ? string.Empty : reader.GetString(reader.GetOrdinal("Interests")),
                                 City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
+                                Country = reader.IsDBNull(reader.GetOrdinal("Country")) ? string.Empty : reader.GetString(reader.GetOrdinal("Country")),
                             };
                             users.Add(user);
                         }
@@ -181,6 +180,105 @@ namespace Repository.User
             finally
             {
                 if (_transaction == null) await connection.CloseAsync();
+            }
+        }
+
+        public async Task GenerateSeedData(List<AppUser> users)
+        {
+            SqlConnection connection = _connection;
+            await this.EstablishConnection(connection);
+            bool isHaveUsers = await CheckUsersExist();
+            if (!isHaveUsers)
+            {
+                string query = "INSERT INTO " +
+                    "[AppUser] ([Id],[UserName],[PasswordHash], [PasswordSalt], [Created],[LastActive],[DateOfBirth] ,[KnownAs], " +
+                    "[Gender] ,[Introduction], [City] ,[Country]) " +
+                    "VALUES (@Id, @UserName, @PasswordHash, @PasswordSalt, @Created, @LastActive, @DateOfBirth, @KnownAs, @Gender, @Introduction, @City, @Country)";
+
+                using SqlTransaction transaction = connection.BeginTransaction();
+                try
+                {
+                    foreach (var user in users)
+                    {
+                        using (SqlCommand command = new SqlCommand(query, connection, transaction))
+                        {
+                            using var hmac = new HMACSHA512();
+
+                            user.UserName = user.UserName.ToLower();
+                            user.PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes("Sieunhan221"));
+                            user.PasswordSalt = hmac.Key;
+                            user.Id = Guid.NewGuid();
+                            command.Parameters.AddWithValue($"@Id", user.Id);
+                            command.Parameters.AddWithValue($"@UserName", user.UserName);
+                            command.Parameters.AddWithValue($"@PasswordHash", user.PasswordHash);
+                            command.Parameters.AddWithValue($"@PasswordSalt", user.PasswordSalt);
+                            command.Parameters.AddWithValue($"@Created", user.Created);
+                            command.Parameters.AddWithValue($"@LastActive", user.LastActive);
+                            command.Parameters.AddWithValue($"@DateOfBirth", user.DateOfBirth);
+                            command.Parameters.AddWithValue($"@KnownAs", user.KnownAs);
+                            command.Parameters.AddWithValue($"@Gender", user.Gender);
+                            command.Parameters.AddWithValue($"@Introduction", user.Introduction);
+                            command.Parameters.AddWithValue($"@City", user.City);
+                            command.Parameters.AddWithValue($"@Country", user.Country);
+                            await command.ExecuteNonQueryAsync();
+                        }
+
+                        string photoQuery = "INSERT INTO " +
+                       "[Photo] VALUES (@Id, @Url, @IsMain, @PublicId, @AppUserId)";
+                        using (SqlCommand command = new SqlCommand(photoQuery, connection, transaction))
+                        {
+                            command.Parameters.AddWithValue($"@Id", Guid.NewGuid());
+                            command.Parameters.AddWithValue($"@Url", user.Photos.SingleOrDefault(item => item.IsMain)?.Url);
+                            command.Parameters.AddWithValue($"@IsMain", true);
+                            command.Parameters.AddWithValue($"@PublicId", "PublicId");
+                            command.Parameters.AddWithValue($"@AppUserId", user.Id);
+                            await command.ExecuteNonQueryAsync();
+                        }
+                    }
+                    await transaction.CommitAsync();
+                }
+
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    await transaction.RollbackAsync();
+                    throw new Exception(ex.Message);
+                }
+                finally
+                {
+                    if (_transaction == null)
+                    {
+                        await connection.CloseAsync();
+                    }
+                }
+            }
+            else
+            {
+                return;
+            }
+        }
+
+
+        private async Task<bool> CheckUsersExist()
+        {
+            SqlConnection sqlConnection = _connection;
+            string query = $"SELECT TOP 1 * FROM AppUser";
+            try
+            {
+                await EstablishConnection(sqlConnection);
+
+                using (SqlCommand command = new SqlCommand(query, sqlConnection, _transaction))
+                {
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        return reader.Read();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
             }
         }
         public void Update(AppUser user)
