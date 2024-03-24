@@ -17,15 +17,12 @@ export default function Swipe() {
   const pageSize = 10;
   const pageSizeLimit = 7;
   const [users, setUsers] = useState<IMemberResponseModel[]>([]);
-  const pageNum = useRef<number>(1);
+  const pageNum = useRef<number>(0);
   const userCount = useRef<number>(0);
-  const currentIndex = useRef<number>(0);
+  const currentIndexRef = useRef<number>(0);
   const swipeElement = useRef<HTMLDivElement>(null);
   const [swipeIndex, setSwipeIndex] = useState<number>(0);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
 
   const fetchData = async () => {
     const payload = {
@@ -41,10 +38,8 @@ export default function Swipe() {
   };
 
   useEffect(() => {
-    if (swipeIndex === pageSizeLimit) {
-      pageNum.current++;
-      fetchData();
-    }
+    pageNum.current++;
+    fetchData();
   }, [swipeIndex]);
 
   useEffect(() => {
@@ -70,9 +65,12 @@ export default function Swipe() {
   }, []);
 
   const handleSwipe = () => {
-    if (userCount.current > currentIndex.current + 1) {
-      setSwipeIndex((prevIndex) => prevIndex + 1);
-      currentIndex.current++;
+    if (currentIndexRef.current + 1 < userCount.current) {
+      setCurrentIndex((prevIndex) => prevIndex + 1);
+      currentIndexRef.current++;
+    }
+    if (currentIndexRef.current + 3 === userCount.current) {
+      setSwipeIndex((prevIndex) => prevIndex + 10);
     }
   };
 
@@ -101,25 +99,25 @@ export default function Swipe() {
           <>
             <div className="relative">
               <img
-                src={users?.[currentIndex.current]?.photoUrl}
+                src={users?.[currentIndex]?.photoUrl}
                 alt=""
-                className="w-100 h-64"
+                className="h-72 w-full object-cover"
               />
               <ExpandCircleDownIcon className="absolute text-3xl top-4 left-4 opacity-50" />
             </div>
             <div className="px-3">
               <div className="h-full max-h-24">
                 <h3 className="font-extrabold text-3xl">
-                  {users?.[currentIndex.current]?.userName +
+                  {users?.[currentIndex]?.userName +
                     ", " +
-                    users?.[currentIndex.current]?.age}
+                    users?.[currentIndex]?.age}
                 </h3>
                 <p className="text-sm opacity-80">
-                  {users?.[currentIndex.current]?.knownAs}
+                  {users?.[currentIndex]?.knownAs}
                 </p>
                 <div className="border border-[#CCC] opacity-50 my-2"></div>
                 <p className="text-xs opacity-80">
-                  {users?.[currentIndex.current]?.introduction}
+                  {users?.[currentIndex]?.introduction}
                 </p>
               </div>
             </div>
