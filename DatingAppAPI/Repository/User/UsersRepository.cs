@@ -151,23 +151,44 @@ namespace Repository.User
                     SqlParameter parameterPageNum = command.Parameters.AddWithValue("@PageNumber", model.PageNum);
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        while (reader.Read())
+                        if (reader.HasRows)
                         {
-                            MemberModel user = new MemberModel()
+                            Dictionary<Guid, MemberModel> userDictionary = new Dictionary<Guid, MemberModel>();
+                            while (reader.Read())
                             {
-                                Id = Guid.Parse(reader["Id"].ToString()),
-                                UserName = reader.IsDBNull(reader.GetOrdinal("UserName")) ? string.Empty : reader.GetString(reader.GetOrdinal("UserName")),
-                                PhotoUrl = reader.IsDBNull(reader.GetOrdinal("Url")) ? string.Empty : reader.GetString(reader.GetOrdinal("Url")),
-                                Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
-                                Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
-                                LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
-                                KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
-                                Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
-                                Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
-                                City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
-                                Country = reader.IsDBNull(reader.GetOrdinal("Country")) ? string.Empty : reader.GetString(reader.GetOrdinal("Country")),
-                            };
-                            users.Add(user);
+                                Guid userId = reader.GetGuid(reader.GetOrdinal("Id"));
+                                if (!userDictionary.TryGetValue(userId, out MemberModel user))
+                                {
+                                    user = new MemberModel()
+                                    {
+                                        Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                                        UserName = reader.IsDBNull(reader.GetOrdinal("UserName")) ? string.Empty : reader.GetString(reader.GetOrdinal("UserName")),
+                                        Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
+                                        Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
+                                        LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
+                                        KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
+                                        Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
+                                        Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
+                                        City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
+                                        Country = reader.IsDBNull(reader.GetOrdinal("Country")) ? string.Empty : reader.GetString(reader.GetOrdinal("Country")),
+                                        Photos = new List<Photo>()
+                                    };
+                                    bool isMain = reader.GetBoolean(reader.GetOrdinal("IsMain"));
+                                    if (isMain)
+                                    {
+                                        user.PhotoUrl = reader.GetString(reader.GetOrdinal("Url"));
+                                    }
+                                    userDictionary.Add(userId, user);
+                                    users.Add(user);
+                                }
+                                user.Photos.Add(new Photo()
+                                {
+                                    Id = reader.GetGuid(reader.GetOrdinal("PhotoId")),
+                                    Url = reader.GetString(reader.GetOrdinal("Url")),
+                                    IsMain = reader.GetBoolean(reader.GetOrdinal("IsMain")),
+                                    PublicId = reader.IsDBNull(reader.GetOrdinal("PublicId")) ? string.Empty : reader.GetString(reader.GetOrdinal("PublicId")),
+                                });
+                            }
                         }
                     }
                 }

@@ -1,5 +1,7 @@
 import ReduxProvider from "@/app/_redux/provider";
 import { Grid } from "@mui/material";
+import { Suspense } from "react";
+import Loading from "../loading";
 import Messages from "./discover";
 import Nav from "./nav";
 
@@ -16,9 +18,11 @@ export default function ContentLayout({
           <Grid item xs={4}>
             <Messages />
           </Grid>
-          <Grid item xs={8} className="h-100 bg-gray-100">
-            {children}
-          </Grid>
+          <Suspense fallback={<Loading />}>
+            <Grid item xs={8} className="h-100 bg-gray-100">
+              {children}
+            </Grid>
+          </Suspense>
         </Grid>
       </main>
     </ReduxProvider>

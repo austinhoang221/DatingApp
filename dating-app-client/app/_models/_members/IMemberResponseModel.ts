@@ -1,3 +1,5 @@
+import { IPhotoModel } from "../_photo/IPhotoModel";
+
 export interface IMemberResponseModel {
   id: string;
   userName: string;
@@ -9,4 +11,5 @@ export interface IMemberResponseModel {
   introduction: string;
   city: string;
   age: number;
+  photos: IPhotoModel[];
 }

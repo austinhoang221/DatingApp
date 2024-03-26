@@ -20,6 +20,7 @@ const initialState: IAuthState = {
   introduction: "",
   city: "",
   age: 0,
+  photos: [],
 };
 
 export const authSlice = createSlice({
