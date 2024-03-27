@@ -105,7 +105,7 @@ export default function Swipe() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <div className="relative">
+              <div className="relative h-72">
                 <Gallery
                   user={users?.[currentIndex]}
                   isOpenProfile={isOpenProfile}

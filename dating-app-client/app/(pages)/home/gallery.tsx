@@ -12,20 +12,23 @@ export default function Gallery(props: IGalleryProps) {
   const { user, isOpenProfile } = props;
   return (
     <MotionConfig transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}>
-      <motion.div animate={{ x: `-${photoIndex * 100}%` }} className="flex">
-        {user?.photos.map((image, i) => (
+      {user?.photos.map((image, i) => (
+        <motion.div
+          animate={{ x: `-${photoIndex * 100}%` }}
+          className="absolute inset-0 flex justify-center items-center"
+        >
           <img
             key={image.id}
             src={image.url}
             alt=""
             className={
               isOpenProfile
-                ? "h-72 w-full object-cover"
-                : "absolute inset-0 w-full h-full object-cover"
+                ? "h-full w-full object-cover"
+                : "absolute inset-0 w-full h-[32rem] object-cover"
             }
           />
-        ))}
-      </motion.div>
+        </motion.div>
+      ))}
       <AnimatePresence initial={false}>
         {photoIndex > 0 && (
           <motion.button
