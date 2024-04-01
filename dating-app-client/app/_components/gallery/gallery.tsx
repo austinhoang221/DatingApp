@@ -14,7 +14,8 @@ export default function Gallery(props: IGalleryProps) {
     <MotionConfig transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}>
       {user?.photos.map((image, i) => (
         <motion.div
-          animate={{ x: `-${photoIndex * 100}%` }}
+          key={image.id}
+          animate={{ opacity: i === photoIndex ? 1 : 0, x: 0 }}
           className="absolute inset-0 flex justify-center items-center"
         >
           <img

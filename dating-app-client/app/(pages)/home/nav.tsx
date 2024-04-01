@@ -6,15 +6,14 @@ import Toolbar from "@mui/material/Toolbar";
 import IconButton from "@mui/material/IconButton";
 import Avatar from "@mui/material/Avatar";
 import { IAuthenticateResponseModel } from "@/app/_models/_auth/IAuthenticateResponseModel";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Container, Typography } from "@mui/material";
-
-const pages = ["Products", "Pricing", "Blog"];
-const settings = ["Profile", "Logout"];
 
 export default function Nav() {
   const router = useRouter();
+  const path = usePathname();
   const [user, setUser] = useState<IAuthenticateResponseModel | null>(null);
+  const [route, setRoute] = useState<string | null>("");
 
   useEffect(() => {
     setUser(
@@ -26,51 +25,48 @@ export default function Nav() {
     );
   }, []);
 
-  const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(
-    null
-  );
-  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
-    null
-  );
-  const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorElNav(event.currentTarget);
-  };
-  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorElUser(event.currentTarget);
+  useEffect(() => {
+    setRoute(path);
+  }, [path]);
+
+  const onNavigateProfile = () => {
+    router.push("/profile");
   };
 
-  const handleCloseNavMenu = () => {
-    setAnchorElNav(null);
-  };
-
-  const handleCloseUserMenu = () => {
-    setAnchorElUser(null);
-  };
-
-  const handleNavigateElUser = (page: string) => {
-    switch (page) {
-      case "Logout": {
-        localStorage.clear();
-        router.push("/login");
-      }
-    }
+  const onNavigateHome = () => {
+    router.push("/home");
   };
 
   return (
     <AppBar position="static">
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          <IconButton
-            sx={{
-              mr: 2,
-              display: { xs: "none", md: "flex" },
-            }}
-          >
-            <Avatar alt="Remy Sharp" src={user?.photoUrl} />
-          </IconButton>
-          <Typography variant="h6" sx={{ color: "#fff" }}>
-            {user?.knownAs}
-          </Typography>
+          {route !== "/profile" ? (
+            <>
+              <IconButton
+                sx={{
+                  mr: 2,
+                  display: { xs: "none", md: "flex" },
+                }}
+                onClick={() => onNavigateProfile()}
+              >
+                <Avatar alt={user?.knownAs} src={user?.photoUrl} />
+              </IconButton>
+              <Typography variant="h6" sx={{ color: "#fff" }}>
+                {user?.knownAs}
+              </Typography>
+            </>
+          ) : (
+            <IconButton
+              sx={{
+                mr: 2,
+                display: { xs: "none", md: "flex" },
+              }}
+              onClick={() => onNavigateHome()}
+            >
+              <Avatar alt="Heart" src="../../_assets/images/logo.png" />
+            </IconButton>
+          )}
         </Toolbar>
       </Container>
     </AppBar>
