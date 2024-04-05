@@ -29,4 +29,19 @@ export class AuthenticationService {
       console.error("Error making request:", error);
     }
   };
+
+  public static readonly registerByOAuth = async (
+    payload: IAuthenticateRequestModel
+  ) => {
+    try {
+      ("use server");
+      const response: IAuthenticateResponseModel = await axiosInstance.post(
+        Endpoint.register,
+        payload
+      );
+      return response;
+    } catch (error) {
+      console.error("Error making request:", error);
+    }
+  };
 }

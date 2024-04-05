@@ -1,36 +1,40 @@
 "use client";
-import Toast from "@/app/_components/toast/page";
-import { useToast } from "@/app/_context/ToastContext";
-import { IAuthState, login } from "@/app/_redux/authSlice";
-import { useAppDispatch } from "@/app/_redux/store";
-import { AuthenticationService } from "@/app/_services/authentication.service";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import React from "react";
-export interface IToast {
-  show: boolean;
-  type: "success" | "error" | "warning";
-  message: string;
-}
+import { AuthenticationService } from "@/app/_services/authentication.service";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/app/_context/ToastContext";
+import { useAppDispatch } from "@/app/_redux/store";
+import { IAuthState, login } from "@/app/_redux/authSlice";
+import { getUserSession } from "@/app/api/auth/[...nextauth]/session";
+import { generateRandomPassword } from "@/app/_constants/constants";
 export default function Login() {
-  const [userName, setUserName] = React.useState<string>("");
-  const [password, setPassword] = React.useState<string>("");
-  const dispatch = useAppDispatch();
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { showToast } = useToast();
+  const [email, setEmail] = React.useState<string>("");
+  const [password, setPassword] = React.useState<string>("");
   const onSubmit = async () => {
     await AuthenticationService.logIn({
-      userName: userName,
+      email: email,
       password: password,
     }).then((e) => {
       if (e) {
-        router.push("/home");
         dispatch(login(e as IAuthState));
+        router.push("/home");
       } else {
-        showToast("error", "Incorrect username or password");
+        showToast("error", "Incorrect email or password");
       }
     });
   };
+
+  const handleGoogleLogin = async () => {
+    await signIn("google", {
+      // callbackUrl: window.location.origin,
+    });
+  };
+
   return (
     <div className="bg-white rounded-lg py-5 text-center">
       <div className="container flex flex-col mx-auto bg-white rounded-lg my-5">
@@ -44,7 +48,10 @@ export default function Login() {
                 <p className="mb-4 text-grey-700">
                   Enter your email and password
                 </p>
-                <a className="flex items-center justify-center w-full py-4 mb-6 text-sm font-medium transition duration-300 rounded-2xl text-grey-900 bg-grey-300 hover:bg-grey-400 focus:ring-4 focus:ring-grey-300">
+                <a
+                  onClick={handleGoogleLogin}
+                  className="flex items-center justify-center w-full py-4 mb-6 text-sm font-medium transition duration-300 rounded-2xl text-grey-900 bg-grey-300 hover:bg-grey-400 focus:ring-4 focus:ring-grey-300"
+                >
                   <img
                     className="h-5 mr-2"
                     src="https://raw.githubusercontent.com/Loopple/loopple-public-assets/main/motion-tailwind/img/logos/logo-google.png"
@@ -61,14 +68,14 @@ export default function Login() {
                   htmlFor="email"
                   className="mb-2 text-sm text-start text-grey-900"
                 >
-                  Username*
+                  email*
                 </label>
                 <input
-                  id="username"
+                  id="email"
                   type="text"
-                  placeholder="Your username"
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="Your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="flex items-center w-full px-5 py-4 mr-2 text-sm font-medium outline-none focus:bg-grey-400 mb-7 placeholder:text-grey-700 bg-grey-200 text-dark-grey-900 rounded-2xl"
                 />
                 <label

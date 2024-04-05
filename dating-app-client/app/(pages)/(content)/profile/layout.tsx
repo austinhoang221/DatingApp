@@ -1,7 +1,7 @@
 import ReduxProvider from "@/app/_redux/provider";
 import { Grid } from "@mui/material";
 import { Suspense } from "react";
-import Loading from "../loading";
+import Loading from "../../loading";
 import Info from "./info";
 
 export default function ContentLayout({

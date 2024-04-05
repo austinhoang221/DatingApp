@@ -9,6 +9,6 @@ namespace Helper.Token
 {
     public interface ITokenService
     {
-        string CreateToken(string userName);
+        string CreateToken(string Email);
     }
 }

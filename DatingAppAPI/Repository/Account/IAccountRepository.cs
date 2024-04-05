@@ -12,5 +12,6 @@ namespace Repository.Account
     {
         Task<AuthenticationResponseModel?> Register(AuthenticationRequestModel model);
         Task<AuthenticationResponseModel?> Login(AuthenticationRequestModel model);
+        Task<AuthenticationResponseModel?> RegisterByOAuth(OAuthUserRequestModel model);
     }
 }

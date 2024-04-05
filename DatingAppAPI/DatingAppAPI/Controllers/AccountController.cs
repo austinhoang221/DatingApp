@@ -22,7 +22,14 @@ namespace DatingAppAPI.Controllers
             var result = await _accountRepository.Register(model);
             if (result == null) return BadRequest("User existed");
             return result;
+        }
 
+        [AllowAnonymous]
+        [HttpPost("register-oauth")]
+        public async Task<ActionResult<AuthenticationResponseModel>> RegisterByOAuth(OAuthUserRequestModel model)
+        {
+            var result = await _accountRepository.RegisterByOAuth(model);
+            return result;
         }
         [AllowAnonymous]
         [HttpPost("login")]

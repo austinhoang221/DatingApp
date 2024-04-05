@@ -1,8 +1,10 @@
 ﻿using Azure;
 using Azure.Core;
 using Entities;
+using Helper.Errors;
 using Helper.Extensions;
 using Helper.Token;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Primitives;
 using Repository.Models;
@@ -10,9 +12,12 @@ using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
+using System.Net;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace Repository.Account
 {
@@ -31,41 +36,81 @@ namespace Repository.Account
         {
             SqlConnection connection = _connection;
             await this.EstablishConnection(connection);
-            var user = await GetByUserName(model.UserName);
+            var user = await GetByEmail(model.Email);
 
             if (user != null) throw new Exception("User existed");
+
+            return await CreateUser(model, connection);
+        }
+
+        public async Task<AuthenticationResponseModel?> RegisterByOAuth(OAuthUserRequestModel model)
+        {
+            SqlConnection connection = _connection;
+            await this.EstablishConnection(connection);
+            var user = await GetByEmail(model.Email);
+
+            if (user != null) return await Login(model);
+
+            return await CreateUser(model, connection);
+        }
+
+        private async Task<AuthenticationResponseModel> CreateUser(AuthenticationRequestModel model, SqlConnection connection)
+        {
+
             using var hmac = new HMACSHA512();
             var newUser = new AppUser()
             {
                 Id = Guid.NewGuid(),
-                UserName = model.UserName,
+                Email = model.Email,
+                KnownAs = model.KnownAs,
                 PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(model.Password)),
                 PasswordSalt = hmac.Key,
                 Created = DateTime.UtcNow,
                 LastActive = DateTime.UtcNow,
             };
+
             var responseUser = new AuthenticationResponseModel()
             {
-                UserName = newUser.UserName,
+                Email = newUser.Email,
                 Created = newUser.Created,
                 LastActive = newUser.LastActive,
-                Token = _tokenService.CreateToken(newUser.UserName)
+                Token = _tokenService.CreateToken(newUser.Email)
             };
             string query = "INSERT INTO " +
-                "[AppUser] ([Id],[UserName],[PasswordHash], [PasswordSalt], [Created],[LastActive]) " +
-                "VALUES (@Id, @UserName, @PasswordHash, @PasswordSalt, @Created,@LastActive)";
+                "[AppUser] ([Id],[Email],[PasswordHash], [PasswordSalt], [KnownAs], [Created],[LastActive]) " +
+                "VALUES (@Id, @Email, @PasswordHash, @PasswordSalt, @KnownAs, @Created,@LastActive)";
             try
             {
-                using (SqlCommand command = new SqlCommand(query, connection, _transaction))
+                using SqlTransaction transaction = connection.BeginTransaction();
+                Guid newUserId = Guid.NewGuid();
+                using (SqlCommand command = new SqlCommand(query, connection, transaction))
                 {
-                    command.Parameters.AddWithValue($"@Id", Guid.NewGuid());
-                    command.Parameters.AddWithValue($"@UserName", newUser.UserName);
+                    command.Parameters.AddWithValue($"@Id", newUserId);
+                    command.Parameters.AddWithValue($"@Email", newUser.Email);
+                    command.Parameters.AddWithValue($"@KnownAs", newUser.KnownAs);
                     command.Parameters.AddWithValue($"@PasswordHash", newUser.PasswordHash);
                     command.Parameters.AddWithValue($"@PasswordSalt", newUser.PasswordSalt);
                     command.Parameters.AddWithValue($"@Created", newUser.Created);
                     command.Parameters.AddWithValue($"@LastActive", newUser.LastActive);
                     await command.ExecuteNonQueryAsync();
                 }
+
+                if (model.PhotoUrl != null)
+                {
+                    string photoQuery = "INSERT INTO " +
+                       "[Photo] VALUES (@Id, @Url, @IsMain, @PublicId, @AppUserId)";
+                    using (SqlCommand command = new SqlCommand(photoQuery, connection, transaction))
+                    {
+                        command.Parameters.AddWithValue($"@Id", Guid.NewGuid());
+                        command.Parameters.AddWithValue($"@Url", model.PhotoUrl);
+                        command.Parameters.AddWithValue($"@IsMain", true);
+                        command.Parameters.AddWithValue($"@PublicId", "PublicId");
+                        command.Parameters.AddWithValue($"@AppUserId", newUserId);
+                        await command.ExecuteNonQueryAsync();
+                    }
+                }
+                await transaction.CommitAsync();
+
             }
             catch (Exception ex)
             {
@@ -82,65 +127,68 @@ namespace Repository.Account
             return responseUser;
         }
 
-      
-            public async Task<AuthenticationResponseModel?> Login(AuthenticationRequestModel model)
+        public async Task<AuthenticationResponseModel?> Login(AuthenticationRequestModel model)
+        {
+            SqlConnection connection = _connection;
+            await this.EstablishConnection(connection);
+
+            var user = await GetByEmail(model.Email);
+            if (user == null) return null;
+
+            using var hmac = new HMACSHA512(user.PasswordSalt);
+
+            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(model.Password));
+
+            for (int i = 0; i < computedHash.Length; i++)
             {
-                SqlConnection connection = _connection;
-                await this.EstablishConnection(connection);
-
-                var user = await GetByUserName(model.UserName);
-                if (user == null) return null;
-
-                using var hmac = new HMACSHA512(user.PasswordSalt);
-
-                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(model.Password));
-
-                for (int i = 0; i < computedHash.Length; i++)
-                {
-                    if (computedHash[i] != user.PasswordHash[i]) throw new Exception("Password incorrect");
-                }
-
-                var newUser = new AuthenticationResponseModel()
-                {
-                    Id = user.Id,
-                    UserName = user.UserName,
-                    Token = _tokenService.CreateToken(user.UserName),
-                    PhotoUrl = user.PhotoUrl,
-                    Age = user.Age,
-                    City = user.City,
-                    Created = user.Created,
-                    LastActive = user.LastActive,
-                    KnownAs = user.KnownAs,
-                    Gender = user.Gender,
-                    Introduction = user.Introduction,
-                };
-                return newUser;
+                if (computedHash[i] != user.PasswordHash[i]) throw new Exception("Password incorrect");
             }
 
-            private async Task<AppUserModel?> GetByUserName(string userName)
+            var newUser = new AuthenticationResponseModel()
             {
-                SqlConnection sqlConnection = _connection;
-                string query = $"SELECT AU.Id, P.Id AS PhotoId, UserName, DateOfBirth, KnownAs, Created, " +
-                        $"LastActive, Gender, Introduction, PasswordSalt, PasswordHash, " +
-                        $"City, Country, Url, IsMain, PublicId " +
-                        $"FROM AppUser AU JOIN Photo P ON AU.Id = P.AppUserId " +
-                        $"Where UserName = @UserName AND IsMain = 1";
-                try
+                Id = user.Id,
+                Email = user.Email,
+                Token = _tokenService.CreateToken(user.Email),
+                PhotoUrl = user.PhotoUrl,
+                Age = user.Age,
+                City = user.City,
+                Created = user.Created,
+                LastActive = user.LastActive,
+                KnownAs = user.KnownAs,
+                Gender = user.Gender,
+                Introduction = user.Introduction,
+                Photos = user.Photos,
+            };
+            return newUser;
+        }
+
+        private async Task<AppUserModel?> GetByEmail(string email)
+        {
+            SqlConnection sqlConnection = _connection;
+            string query = $"SELECT AU.Id, P.Id AS PhotoId, Email, DateOfBirth, KnownAs, Created, " +
+                    $"LastActive, Gender, Introduction, PasswordSalt, PasswordHash, " +
+                    $"City, Country, Url, IsMain, PublicId " +
+                    $"FROM AppUser AU JOIN Photo P ON AU.Id = P.AppUserId " +
+                    $"Where Email = @Email";
+            try
+            {
+                await EstablishConnection(sqlConnection);
+
+                using (SqlCommand command = new SqlCommand(query, sqlConnection, _transaction))
                 {
-                    await EstablishConnection(sqlConnection);
+                    command.Parameters.AddWithValue("@Email", email);
 
-                    using (SqlCommand command = new SqlCommand(query, sqlConnection, _transaction))
+                    using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        command.Parameters.AddWithValue("@UserName", userName);
-
-                        using (SqlDataReader reader = command.ExecuteReader())
+                        if (reader.HasRows)
                         {
-                            if (reader.Read())
+                            var user = new AppUserModel();
+                            while (reader.Read())
                             {
-                                var user = new AppUserModel()
+                                user = new AppUserModel()
                                 {
                                     Id = new Guid(reader["Id"].ToString()),
-                                    UserName = reader["UserName"].ToString(),
+                                    Email = reader["Email"].ToString(),
                                     PasswordSalt = (byte[])(reader["PasswordSalt"]),
                                     PasswordHash = (byte[])(reader["PasswordHash"]),
                                     PhotoUrl = reader.IsDBNull(reader.GetOrdinal("Url")) ? string.Empty : reader.GetString(reader.GetOrdinal("Url")),
@@ -152,25 +200,38 @@ namespace Repository.Account
                                     Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
                                     Country = reader.IsDBNull(reader.GetOrdinal("Country")) ? string.Empty : reader.GetString(reader.GetOrdinal("Country")),
                                     City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
+                                    Photos = new List<Photo>()
                                 };
-                                return user;
+                                bool isMain = reader.GetBoolean(reader.GetOrdinal("IsMain"));
+                                if (isMain)
+                                {
+                                    user.PhotoUrl = reader.GetString(reader.GetOrdinal("Url"));
+                                }
+                                user.Photos.Add(new Photo()
+                                {
+                                    Id = reader.GetGuid(reader.GetOrdinal("PhotoId")),
+                                    Url = reader.GetString(reader.GetOrdinal("Url")),
+                                    IsMain = reader.GetBoolean(reader.GetOrdinal("IsMain")),
+                                    PublicId = reader.IsDBNull(reader.GetOrdinal("PublicId")) ? string.Empty : reader.GetString(reader.GetOrdinal("PublicId")),
+                                });
                             }
-                            else
-                            {
-                                return null;
-                            }
-
+                            return user;
+                        }
+                        else
+                        {
+                            return null;
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    throw new Exception(ex.Message);
-                }
-
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
             }
 
-            
         }
+
+
     }
+}

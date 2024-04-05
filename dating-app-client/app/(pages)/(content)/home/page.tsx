@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Swipe from "../../_components/swipe/swipe";
 import ArrowCircleLeftOutlinedIcon from "@mui/icons-material/ArrowCircleLeftOutlined";
 import ArrowCircleRightOutlinedIcon from "@mui/icons-material/ArrowCircleRightOutlined";
 import ArrowCircleUpOutlinedIcon from "@mui/icons-material/ArrowCircleUpOutlined";
@@ -11,10 +10,11 @@ import CloseIcon from "@mui/icons-material/Close";
 import AdsClickIcon from "@mui/icons-material/AdsClick";
 import SwipeIcon from "@mui/icons-material/Swipe";
 import { Grid } from "@mui/material";
-import Loading from "../loading";
 import { IMemberResponseModel } from "@/app/_models/_members/IMemberResponseModel";
 import { MemberService } from "@/app/_services/memberService";
 import { ArrowKey } from "@/app/_constants/constants";
+import Swipe from "@/app/_components/swipe/swipe";
+import Loading from "./loading";
 export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isOpenProfile, setIsOpenProfile] = useState<boolean>(false);

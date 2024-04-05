@@ -34,15 +34,15 @@ namespace Repository.User
             return result;
         }
 
-        public async Task<MemberModel> GetUserByUsername(string name)
+        public async Task<MemberModel> GetUserByEmail(string name)
         {
             SqlConnection connection = this._connection;
             await EstablishConnection(connection);
-            string query = $"SELECT * FROM AppUser WHERE UserName = @UserName";
+            string query = $"SELECT * FROM AppUser WHERE Email = @Email";
 
             using (SqlCommand command = new SqlCommand(query, connection, _transaction))
             {
-                command.Parameters.AddWithValue("@UserName", name);
+                command.Parameters.AddWithValue("@Email", name);
                 var user = new AppUser();
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
@@ -77,7 +77,7 @@ namespace Repository.User
             try
             {
                 await EstablishConnection(connection);
-                string query = $"SELECT AU.Id, P.Id AS PhotoId, UserName, DateOfBirth, KnownAs, Created, " +
+                string query = $"SELECT AU.Id, P.Id AS PhotoId, Email, DateOfBirth, KnownAs, Created, " +
                     $"LastActive, Gender, Introduction, " +
                     $"City, Country, Url, IsMain, PublicId " +
                     $"FROM AppUser AU JOIN Photo P ON AU.Id = P.AppUserId";
@@ -97,7 +97,7 @@ namespace Repository.User
                                     user = new MemberModel()
                                     {
                                         Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                                        UserName = reader.IsDBNull(reader.GetOrdinal("UserName")) ? string.Empty : reader.GetString(reader.GetOrdinal("UserName")),
+                                        Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? string.Empty : reader.GetString(reader.GetOrdinal("Email")),
                                         Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
                                         Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
                                         LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
@@ -162,7 +162,7 @@ namespace Repository.User
                                     user = new MemberModel()
                                     {
                                         Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                                        UserName = reader.IsDBNull(reader.GetOrdinal("UserName")) ? string.Empty : reader.GetString(reader.GetOrdinal("UserName")),
+                                        Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? string.Empty : reader.GetString(reader.GetOrdinal("Email")),
                                         Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
                                         Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
                                         LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
@@ -212,9 +212,9 @@ namespace Repository.User
             if (!isHaveUsers)
             {
                 string query = "INSERT INTO " +
-                    "[AppUser] ([Id],[UserName],[PasswordHash], [PasswordSalt], [Created],[LastActive],[DateOfBirth] ,[KnownAs], " +
+                    "[AppUser] ([Id],[Email],[PasswordHash], [PasswordSalt], [Created],[LastActive],[DateOfBirth] ,[KnownAs], " +
                     "[Gender] ,[Introduction], [City] ,[Country]) " +
-                    "VALUES (@Id, @UserName, @PasswordHash, @PasswordSalt, @Created, @LastActive, @DateOfBirth, @KnownAs, @Gender, @Introduction, @City, @Country)";
+                    "VALUES (@Id, @Email, @PasswordHash, @PasswordSalt, @Created, @LastActive, @DateOfBirth, @KnownAs, @Gender, @Introduction, @City, @Country)";
 
                 using SqlTransaction transaction = connection.BeginTransaction();
                 try
@@ -225,12 +225,12 @@ namespace Repository.User
                         {
                             using var hmac = new HMACSHA512();
 
-                            user.UserName = user.UserName.ToLower();
+                            user.Email = user.Email;
                             user.PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes("Sieunhan221"));
                             user.PasswordSalt = hmac.Key;
                             user.Id = Guid.NewGuid();
                             command.Parameters.AddWithValue($"@Id", user.Id);
-                            command.Parameters.AddWithValue($"@UserName", user.UserName);
+                            command.Parameters.AddWithValue($"@Email", user.Email);
                             command.Parameters.AddWithValue($"@PasswordHash", user.PasswordHash);
                             command.Parameters.AddWithValue($"@PasswordSalt", user.PasswordSalt);
                             command.Parameters.AddWithValue($"@Created", user.Created);
@@ -278,7 +278,6 @@ namespace Repository.User
                 return;
             }
         }
-
 
         private async Task<bool> CheckUsersExist()
         {

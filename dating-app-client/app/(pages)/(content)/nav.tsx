@@ -5,25 +5,19 @@ import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import IconButton from "@mui/material/IconButton";
 import Avatar from "@mui/material/Avatar";
-import { IAuthenticateResponseModel } from "@/app/_models/_auth/IAuthenticateResponseModel";
 import { usePathname, useRouter } from "next/navigation";
 import { Container, Typography } from "@mui/material";
 
+interface IUser {
+  name?: string | null | undefined;
+  email?: string | null | undefined;
+  image?: string | null | undefined;
+}
 export default function Nav() {
   const router = useRouter();
   const path = usePathname();
-  const [user, setUser] = useState<IAuthenticateResponseModel | null>(null);
   const [route, setRoute] = useState<string | null>("");
-
-  useEffect(() => {
-    setUser(
-      window.localStorage.getItem("user")
-        ? (JSON.parse(
-            window.localStorage.getItem("user") ?? ""
-          ) as IAuthenticateResponseModel)
-        : null
-    );
-  }, []);
+  const [user, setUser] = useState<IUser>();
 
   useEffect(() => {
     setRoute(path);
@@ -50,10 +44,10 @@ export default function Nav() {
                 }}
                 onClick={() => onNavigateProfile()}
               >
-                <Avatar alt={user?.knownAs} src={user?.photoUrl} />
+                <Avatar alt={user?.name!} src={user?.image!} />
               </IconButton>
               <Typography variant="h6" sx={{ color: "#fff" }}>
-                {user?.knownAs}
+                {user?.name}
               </Typography>
             </>
           ) : (

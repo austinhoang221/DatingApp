@@ -1,34 +1,37 @@
 "use client";
-import Toast from "@/app/_components/toast/page";
-import { login } from "@/app/_redux/authSlice";
-import { useAppDispatch } from "@/app/_redux/store";
+import { useToast } from "@/app/_context/ToastContext";
 import { AuthenticationService } from "@/app/_services/authentication.service";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
-import { IToast } from "../login/page";
+import { signIn } from "next-auth/react";
+import { useAppDispatch } from "@/app/_redux/store";
+import { IAuthState, login } from "@/app/_redux/authSlice";
 
 export default function Register() {
-  const [userName, setUserName] = React.useState<string>("");
-  const [password, setPassword] = React.useState<string>("");
   const dispatch = useAppDispatch();
-  const [toast, setToast] = React.useState<IToast | null>(null);
-
+  const [email, setEmail] = React.useState<string>("");
+  const [password, setPassword] = React.useState<string>("");
+  const { showToast } = useToast();
   const router = useRouter();
 
   const onSubmit = async () => {
     await AuthenticationService.register({
-      userName: userName,
+      email: email,
       password: password,
     }).then((e) => {
-      const result = {
-        userName: e?.userName!,
-        token: e?.token!,
-        isLoggedIn: true,
-      };
-      setToast({ show: true, type: "success", message: "Success" });
-      router.push("/home");
-      dispatch(login(result));
+      if (e) {
+        router.push("/home");
+        dispatch(login(e as IAuthState));
+      } else {
+        showToast("error", "Incorrect username or password");
+      }
+    });
+  };
+
+  const handleGoogleLogin = async () => {
+    await signIn("google", {
+      callbackUrl: `${window.location.origin}`,
     });
   };
   return (
@@ -45,7 +48,10 @@ export default function Register() {
                   <p className="mb-4 text-grey-700">
                     Enter your username and password
                   </p>
-                  <a className="flex items-center justify-center w-full py-4 mb-6 text-sm font-medium transition duration-300 rounded-2xl text-grey-900 bg-grey-300 hover:bg-grey-400 focus:ring-4 focus:ring-grey-300">
+                  <a
+                    onClick={handleGoogleLogin}
+                    className="flex items-center justify-center w-full py-4 mb-6 text-sm font-medium transition duration-300 rounded-2xl text-grey-900 bg-grey-300 hover:bg-grey-400 focus:ring-4 focus:ring-grey-300"
+                  >
                     <img
                       className="h-5 mr-2"
                       src="https://raw.githubusercontent.com/Loopple/loopple-public-assets/main/motion-tailwind/img/logos/logo-google.png"
@@ -68,8 +74,8 @@ export default function Register() {
                     id="username"
                     type="text"
                     placeholder="Your username"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="flex items-center w-full px-5 py-4 mr-2 text-sm font-medium outline-none focus:bg-grey-400 mb-7 placeholder:text-grey-700 bg-grey-200 text-dark-grey-900 rounded-2xl"
                   />
                   <label
@@ -106,13 +112,6 @@ export default function Register() {
           </div>
         </div>
       </div>
-
-      <Toast
-        show={toast?.show ?? false}
-        message={toast?.message ?? ""}
-        type={toast?.type ?? "success"}
-        onDismiss={() => setToast(null)}
-      />
     </>
   );
 }

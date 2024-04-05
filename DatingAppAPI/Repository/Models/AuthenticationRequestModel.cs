@@ -10,9 +10,11 @@ namespace Repository.Models
     public class AuthenticationRequestModel
     {
         [Required]
-        public string UserName { get; set; }
+        public string Email { get; set; }
         [Required]
         [StringLength(20, MinimumLength = 4)]
         public string Password { get; set; }
+        public string? PhotoUrl { get; set; }
+        public string? KnownAs { get; set; }
     }
 }

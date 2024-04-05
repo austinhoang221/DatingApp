@@ -4,7 +4,7 @@ import Loading from "./loading";
 import { ToastProvider } from "../_context/ToastContext";
 import { AxiosInterceptor } from "../_middleware/authenticate";
 import { customTheme } from "../_themeProvider";
-import Nav from "./home/nav";
+import AuthSessionProvider from "./(auth)/auth-session-provider";
 
 export default function PageLayout({
   children,
@@ -15,13 +15,13 @@ export default function PageLayout({
     <ToastProvider>
       <AxiosInterceptor>
         <Suspense fallback={<Loading />}>
-          <ThemeProvider theme={customTheme}>
-            <Nav />
-
-            <main className="w-full h-screen place-items-center bg-white box-border">
-              {children}
-            </main>
-          </ThemeProvider>
+          <AuthSessionProvider>
+            <ThemeProvider theme={customTheme}>
+              <main className="w-full h-screen place-items-center bg-white box-border">
+                {children}
+              </main>
+            </ThemeProvider>
+          </AuthSessionProvider>
         </Suspense>
       </AxiosInterceptor>
     </ToastProvider>

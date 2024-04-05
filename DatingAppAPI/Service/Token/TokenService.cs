@@ -19,11 +19,11 @@ namespace Helper.Token
         }
 
         private readonly SymmetricSecurityKey _key;
-        public string CreateToken(string userName)
+        public string CreateToken(string Email)
         {
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.NameId, userName)
+                new Claim(JwtRegisteredClaimNames.NameId, Email)
             };
 
             var creds = new SigningCredentials(_key, SecurityAlgorithms.HmacSha512Signature);
