@@ -26,7 +26,7 @@ namespace DatingAppAPI.Controllers
 
         [AllowAnonymous]
         [HttpPost("register-oauth")]
-        public async Task<ActionResult<AuthenticationResponseModel>> RegisterByOAuth(OAuthUserRequestModel model)
+        public async Task<ActionResult<AuthenticationResponseModel>> RegisterByOAuth(AuthenticationRequestModel model)
         {
             var result = await _accountRepository.RegisterByOAuth(model);
             return result;

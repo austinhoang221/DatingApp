@@ -12,4 +12,5 @@ export interface IMemberResponseModel {
   city: string;
   age: number;
   photos: IPhotoModel[];
+  token: string;
 }

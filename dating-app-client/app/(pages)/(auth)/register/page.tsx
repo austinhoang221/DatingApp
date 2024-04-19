@@ -21,7 +21,7 @@ export default function Register() {
       password: password,
     }).then((e) => {
       if (e) {
-        router.push("/home");
+        router.push("/register/info");
         dispatch(login(e as IAuthState));
       } else {
         showToast("error", "Incorrect username or password");

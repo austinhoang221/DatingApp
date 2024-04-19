@@ -9,4 +9,5 @@ export default class Endpoint {
     this.baseUrl + "Account/register-oauth";
   public static readonly usersPaginate: string =
     this.baseUrl + "Users/paginate";
+  public static readonly userByEmail: string = this.baseUrl + "Users/";
 }

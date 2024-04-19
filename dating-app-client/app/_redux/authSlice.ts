@@ -1,10 +1,13 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { IMemberResponseModel } from "../_models/_members/IMemberResponseModel";
+import { getuid } from "process";
 
 export interface IAuthState extends IMemberResponseModel {
   isLoggedIn: boolean;
   token: string;
+  toastId: number;
+  toastMessage: string;
 }
 
 const initialState: IAuthState = {
@@ -21,6 +24,8 @@ const initialState: IAuthState = {
   city: "",
   age: 0,
   photos: [],
+  toastId: 0,
+  toastMessage: "",
 };
 
 export const authSlice = createSlice({
@@ -34,7 +39,15 @@ export const authSlice = createSlice({
         isLoggedIn: true,
       };
     },
+    showUnauthorizedMessage: (state, action: PayloadAction<string>) => {
+      console.log("here");
+      return {
+        ...state,
+        toastId: Math.random(),
+        toastMessage: action.payload,
+      };
+    },
   },
 });
-export const { login } = authSlice.actions;
+export const { login, showUnauthorizedMessage } = authSlice.actions;
 export const authReducer = authSlice.reducer;

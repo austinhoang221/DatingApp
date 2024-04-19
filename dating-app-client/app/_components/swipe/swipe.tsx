@@ -42,9 +42,8 @@ export default function Swipe(props: ISwipeProps) {
               <div className="px-3">
                 <div className="h-full max-h-24">
                   <h3 className="font-extrabold text-3xl">
-                    {user?.userName + ", " + user?.age}
+                    {user?.knownAs + ", " + user?.age}
                   </h3>
-                  <p className="text-sm opacity-80">{user?.knownAs}</p>
                   <div className="border border-[#CCC] opacity-50 my-2"></div>
                   <p className="text-xs opacity-80">{user?.introduction}</p>
                 </div>

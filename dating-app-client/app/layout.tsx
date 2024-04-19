@@ -6,7 +6,7 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import ReduxProvider from "./_redux/provider";
-
+import { Provider } from "react-redux";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {

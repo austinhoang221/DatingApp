@@ -34,38 +34,37 @@ namespace Repository.User
             return result;
         }
 
-        public async Task<MemberModel> GetUserByEmail(string name)
+        public async Task<MemberModel> GetUserByEmail(string email)
         {
             SqlConnection connection = this._connection;
             await EstablishConnection(connection);
-            string query = $"SELECT * FROM AppUser WHERE Email = @Email";
+            string query = $"SELECT *, P.Id AS PhotoId FROM AppUser AU JOIN Photo P ON AU.Id = P.AppUserId WHERE Email = @Email";
 
             using (SqlCommand command = new SqlCommand(query, connection, _transaction))
             {
-                command.Parameters.AddWithValue("@Email", name);
-                var user = new AppUser();
+                command.Parameters.AddWithValue("@Email", email);
+                MemberModel user = new MemberModel();
                 using (SqlDataReader reader = command.ExecuteReader())
                 {
-                    if (reader.Read())
+                    if (reader.HasRows)
                     {
+                        Dictionary<Guid, MemberModel> userDictionary = new Dictionary<Guid, MemberModel>();
                         while (reader.Read())
-                        {
-                            foreach (var prop in typeof(AppUser).GetProperties())
+                        {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+                            Guid userId = reader.GetGuid(reader.GetOrdinal("Id"));
+                            if (!userDictionary.TryGetValue(userId, out MemberModel userResponse))
                             {
-                                if (!reader.IsDBNull(reader.GetOrdinal(prop.Name)))
-                                {
-                                    prop.SetValue(user, reader[prop.Name]);
-                                }
+                                user = MapResponseUser(reader);
+                                userDictionary.Add(userId, userResponse);
                             }
                         }
                     }
                     else
                     {
-                        throw new NonExistException($"User with name ${name}");
+                        throw new NonExistException($"User with name ${email}");
                     }
                 }
-                var result = _mapper.Map<MemberModel>(user);
-                return result;
+                return user;
             }
         }
 
@@ -94,24 +93,7 @@ namespace Repository.User
                                 Guid userId = reader.GetGuid(reader.GetOrdinal("Id"));
                                 if (!userDictionary.TryGetValue(userId, out MemberModel user))
                                 {
-                                    user = new MemberModel()
-                                    {
-                                        Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                                        Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? string.Empty : reader.GetString(reader.GetOrdinal("Email")),
-                                        Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
-                                        Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
-                                        LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
-                                        KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
-                                        Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
-                                        Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
-                                        City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
-                                        Country = reader.IsDBNull(reader.GetOrdinal("Country")) ? string.Empty : reader.GetString(reader.GetOrdinal("Country")),
-                                    };
-                                    bool isMain = reader.GetBoolean(reader.GetOrdinal("IsMain"));
-                                    if (isMain)
-                                    {
-                                        user.PhotoUrl = reader.GetString(reader.GetOrdinal("Url"));
-                                    }
+                                    user = MapResponseUser(reader);
                                     userDictionary.Add(userId, user);
                                     users.Add(user);
                                 }
@@ -159,35 +141,11 @@ namespace Repository.User
                                 Guid userId = reader.GetGuid(reader.GetOrdinal("Id"));
                                 if (!userDictionary.TryGetValue(userId, out MemberModel user))
                                 {
-                                    user = new MemberModel()
-                                    {
-                                        Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                                        Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? string.Empty : reader.GetString(reader.GetOrdinal("Email")),
-                                        Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
-                                        Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
-                                        LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
-                                        KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
-                                        Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
-                                        Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
-                                        City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
-                                        Country = reader.IsDBNull(reader.GetOrdinal("Country")) ? string.Empty : reader.GetString(reader.GetOrdinal("Country")),
-                                        Photos = new List<Photo>()
-                                    };
-                                    bool isMain = reader.GetBoolean(reader.GetOrdinal("IsMain"));
-                                    if (isMain)
-                                    {
-                                        user.PhotoUrl = reader.GetString(reader.GetOrdinal("Url"));
-                                    }
+                                    user = MapResponseUser(reader);
                                     userDictionary.Add(userId, user);
                                     users.Add(user);
                                 }
-                                user.Photos.Add(new Photo()
-                                {
-                                    Id = reader.GetGuid(reader.GetOrdinal("PhotoId")),
-                                    Url = reader.GetString(reader.GetOrdinal("Url")),
-                                    IsMain = reader.GetBoolean(reader.GetOrdinal("IsMain")),
-                                    PublicId = reader.IsDBNull(reader.GetOrdinal("PublicId")) ? string.Empty : reader.GetString(reader.GetOrdinal("PublicId")),
-                                });
+                            
                             }
                         }
                     }
@@ -300,6 +258,46 @@ namespace Repository.User
                 Console.WriteLine(ex.Message);
                 throw new Exception(ex.Message);
             }
+        }
+
+        private MemberModel MapResponseUser(SqlDataReader reader)
+        {
+            MemberModel user;
+            try
+            {
+            user = new MemberModel()
+            {
+                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? string.Empty : reader.GetString(reader.GetOrdinal("Email")),
+                Age = reader.IsDBNull(reader.GetOrdinal("DateOfBirth")) ? 0 : DateTimeExtension.CalculateAge(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
+                Created = reader.IsDBNull(reader.GetOrdinal("Created")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("Created")),
+                LastActive = reader.IsDBNull(reader.GetOrdinal("LastActive")) ? DateTime.MinValue : reader.GetDateTime(reader.GetOrdinal("LastActive")),
+                KnownAs = reader.IsDBNull(reader.GetOrdinal("KnownAs")) ? string.Empty : reader.GetString(reader.GetOrdinal("KnownAs")),
+                Gender = reader.IsDBNull(reader.GetOrdinal("Gender")) ? string.Empty : reader.GetString(reader.GetOrdinal("Gender")),
+                Introduction = reader.IsDBNull(reader.GetOrdinal("Introduction")) ? string.Empty : reader.GetString(reader.GetOrdinal("Introduction")),
+                City = reader.IsDBNull(reader.GetOrdinal("City")) ? string.Empty : reader.GetString(reader.GetOrdinal("City")),
+                Country = reader.IsDBNull(reader.GetOrdinal("Country")) ? string.Empty : reader.GetString(reader.GetOrdinal("Country")),
+                Photos = new List<Photo>()
+            };
+            bool isMain = reader.GetBoolean(reader.GetOrdinal("IsMain"));
+            if (isMain)
+            {
+                user.PhotoUrl = reader.GetString(reader.GetOrdinal("Url"));
+            }
+            user.Photos.Add(new Photo()
+            {
+                Id = reader.GetGuid(reader.GetOrdinal("PhotoId")),
+                Url = reader.GetString(reader.GetOrdinal("Url")),
+                IsMain = reader.GetBoolean(reader.GetOrdinal("IsMain")),
+                PublicId = reader.IsDBNull(reader.GetOrdinal("PublicId")) ? string.Empty : reader.GetString(reader.GetOrdinal("PublicId")),
+            });
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
+            }
+            return user;
         }
         public void Update(AppUser user)
         {

@@ -31,7 +31,7 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     await signIn("google", {
-      // callbackUrl: window.location.origin,
+      callbackUrl: window.location.origin,
     });
   };
 

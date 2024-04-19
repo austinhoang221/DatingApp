@@ -17,4 +17,15 @@ export class MemberService {
       console.error("Error making request:", error);
     }
   };
+
+  public static readonly getByEmail = async (email: string) => {
+    try {
+      const response: IMemberResponseModel = await axiosInstance.get(
+        Endpoint.userByEmail + `${email}`
+      );
+      return response;
+    } catch (error) {
+      console.error("Error making request:", error);
+    }
+  };
 }

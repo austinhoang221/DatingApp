@@ -43,13 +43,31 @@ namespace Repository.Account
             return await CreateUser(model, connection);
         }
 
-        public async Task<AuthenticationResponseModel?> RegisterByOAuth(OAuthUserRequestModel model)
+        public async Task<AuthenticationResponseModel?> RegisterByOAuth(AuthenticationRequestModel model)
         {
             SqlConnection connection = _connection;
             await this.EstablishConnection(connection);
             var user = await GetByEmail(model.Email);
 
-            if (user != null) return await Login(model);
+            if (user != null)
+            {
+                var newUser = new AuthenticationResponseModel()
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    Token = _tokenService.CreateToken(user.Email),
+                    PhotoUrl = user.PhotoUrl,
+                    Age = user.Age,
+                    City = user.City,
+                    Created = user.Created,
+                    LastActive = user.LastActive,
+                    KnownAs = user.KnownAs,
+                    Gender = user.Gender,
+                    Introduction = user.Introduction,
+                    Photos = user.Photos,
+                };
+                return newUser;
+            };
 
             return await CreateUser(model, connection);
         }
@@ -62,23 +80,22 @@ namespace Repository.Account
             {
                 Id = Guid.NewGuid(),
                 Email = model.Email,
-                KnownAs = model.KnownAs,
                 PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(model.Password)),
                 PasswordSalt = hmac.Key,
                 Created = DateTime.UtcNow,
                 LastActive = DateTime.UtcNow,
             };
-
             var responseUser = new AuthenticationResponseModel()
             {
+                Id = newUser.Id,
                 Email = newUser.Email,
                 Created = newUser.Created,
                 LastActive = newUser.LastActive,
                 Token = _tokenService.CreateToken(newUser.Email)
             };
             string query = "INSERT INTO " +
-                "[AppUser] ([Id],[Email],[PasswordHash], [PasswordSalt], [KnownAs], [Created],[LastActive]) " +
-                "VALUES (@Id, @Email, @PasswordHash, @PasswordSalt, @KnownAs, @Created,@LastActive)";
+                "[AppUser] ([Id],[Email],[PasswordHash], [PasswordSalt], [Created],[LastActive]) " +
+                "VALUES (@Id, @Email, @PasswordHash, @PasswordSalt, @Created,@LastActive)";
             try
             {
                 using SqlTransaction transaction = connection.BeginTransaction();
@@ -87,7 +104,6 @@ namespace Repository.Account
                 {
                     command.Parameters.AddWithValue($"@Id", newUserId);
                     command.Parameters.AddWithValue($"@Email", newUser.Email);
-                    command.Parameters.AddWithValue($"@KnownAs", newUser.KnownAs);
                     command.Parameters.AddWithValue($"@PasswordHash", newUser.PasswordHash);
                     command.Parameters.AddWithValue($"@PasswordSalt", newUser.PasswordSalt);
                     command.Parameters.AddWithValue($"@Created", newUser.Created);

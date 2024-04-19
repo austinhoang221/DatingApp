@@ -30,17 +30,10 @@ namespace DatingAppAPI.Controllers
         }
 
         [Authorize]
-        [HttpGet("{id}")]
-        public async Task<MemberModel> GetById(Guid id)
+        [HttpGet("{email}")]
+        public async Task<MemberModel> GetByEmail(string email)
         {
-            return await _usersRepository.GetUserById(id);
-        }
-
-        [Authorize]
-        [HttpGet("{Email}")]
-        public async Task<MemberModel> GetByEmail(string Email)
-        {
-            return await _usersRepository.GetUserByEmail(Email);
+            return await _usersRepository.GetUserByEmail(email);
         }
     }
 }

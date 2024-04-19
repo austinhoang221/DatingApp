@@ -3,6 +3,7 @@ import Endpoint from "@/app/_endpoint/endpoint";
 import NextAuth from "next-auth";
 import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { cookies } from "next/headers";
 export const authOptions: AuthOptions = {
   // Configure one or more authentication providers
   session: {
@@ -19,13 +20,12 @@ export const authOptions: AuthOptions = {
   ],
 
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, profile }) {
       if (!profile?.email) {
         throw new Error("No profile");
       }
-      console.log(account);
       try {
-        await fetch(Endpoint.registerByOAuth, {
+        const response = await fetch(Endpoint.registerByOAuth, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -34,9 +34,17 @@ export const authOptions: AuthOptions = {
             email: profile?.email,
             password: generateRandomPassword(8),
             photoUrl: user?.image,
-            knownAs: profile?.name,
           }),
         });
+        if (response.ok) {
+          const data = await response.json();
+          cookies().set({
+            name: "token",
+            value: data.token,
+            httpOnly: true,
+            path: "/",
+          });
+        }
       } catch (error) {
         console.error("Error:", error);
       }
